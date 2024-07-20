@@ -6,6 +6,6 @@ type Product struct {
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
 	Quantity    int     `json:"quantity"`
-	Category    string  `json:”category”`
-	IsAvailable bool    `json:”is_available”`
+	Category    string  `json:"category"`
+	IsAvailable bool    `json:"is_available"`
 }

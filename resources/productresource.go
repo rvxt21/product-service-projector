@@ -1,13 +1,25 @@
 package resources
 
-import "net/http"
+import (
+	"encoding/json"
+	"net/http"
+	"product-service-projector/enteties"
+	"product-service-projector/storage"
+)
 
 type ProductsResourse struct {
 	S *storage.Storage
 }
 
-func (tr *ProductsResourse) CreateTask(w http.ResponseWriter, r *http.Request) {
+func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request) {
+	var product enteties.Product
+	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
 
+	//id := tr.Storage.CreateOneProduct(product)
+	//product.ID = id
 }
 
 func (tr *ProductsResourse) GetAll(w http.ResponseWriter, r *http.Request) {
