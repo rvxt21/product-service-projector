@@ -17,7 +17,7 @@ func NewStorage() *Storage {
 	}
 }
 
-func (s *Storage) CreateOneProduct(p enteties.Product) int64 {
+func (s *Storage) CreateOneProduct(p enteties.Product) int {
 	s.m.Lock()
 	defer s.m.Unlock()
 
@@ -31,8 +31,15 @@ func (s *Storage) GetAllProducts() {
 
 }
 
-func (s *Storage) DeleteProduct() {
+func (s *Storage) DeleteProduct(ID int) bool {
+	s.m.Lock()
+	defer s.m.Unlock()
 
+	if _, exists := s.allProducts[ID]; exists {
+		delete(s.allProducts, ID)
+		return true
+	}
+	return false
 }
 
 func (s *Storage) UpdateProduct() {

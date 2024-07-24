@@ -18,8 +18,11 @@ func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	//id := tr.Storage.CreateOneProduct(product)
-	//product.ID = id
+	id := tr.S.CreateOneProduct(product)
+	product.ID = id
+	w.Header().Set("Content-Type", "application/json")
+	//w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(product)
 }
 
 func (tr *ProductsResourse) GetAll(w http.ResponseWriter, r *http.Request) {

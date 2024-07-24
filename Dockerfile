@@ -1,6 +1,6 @@
-FROM golang
+FROM golang:1.22.5
 
-WORKDIR /container-product-service-projector
+WORKDIR /app
 
 COPY . .
 
@@ -8,4 +8,4 @@ RUN go mod download
 
 RUN go build -o api .
 
-CMD [ "/product-service-projector/api" ]
+CMD [ "./product-service-projector/api" ]
