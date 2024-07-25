@@ -13,8 +13,8 @@ func main() {
 	store := storage.NewStorage()
 	productResource := &resources.ProductsResource{Storage: store}
 
-	http.HandleFunc("/products/create", productResource.CreateProduct)
-	http.HandleFunc("/products/delete", productResource.DeleteProduct)
+	http.HandleFunc("POST /products", productResource.CreateProduct)
+	http.HandleFunc("DELETE /products", productResource.DeleteProduct)
 
 	fmt.Println("Starting server at :8080")
 	err := http.ListenAndServe(":8080", mux)
