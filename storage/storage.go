@@ -1,7 +1,9 @@
 package storage
 
 import (
-	"product-service-projector/enteties"
+	"errors"
+	"products/enteties"
+
 	"sync"
 )
 
@@ -44,4 +46,18 @@ func (s *Storage) DeleteProduct(ID int) bool {
 
 func (s *Storage) UpdateProduct() {
 
+}
+
+var (
+	ErrProductNotFound = errors.New("product not found")
+)
+
+func (s *Storage) UpdateAvailability(id int, availability bool) error {
+	product, exists := s.allProducts[id]
+	if !exists {
+		return ErrProductNotFound
+	}
+
+	product.IsAvailable = availability
+	return nil
 }
