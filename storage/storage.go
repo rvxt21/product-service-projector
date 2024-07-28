@@ -29,14 +29,7 @@ func (s *Storage) CreateOneProduct(p enteties.Product) int {
 }
 
 func (s *Storage) GetAllProducts() ([]enteties.Product, error) {
-	s.m.Lock()
-	defer s.m.Unlock()
 
-	products := make([]enteties.Product, 0, len(s.allProducts))
-	for _, product := range s.allProducts {
-		products = append(products, product)
-	}
-	return products, nil
 }
 
 func (s *Storage) DeleteProduct(ID int) bool {

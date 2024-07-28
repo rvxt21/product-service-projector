@@ -19,7 +19,9 @@ func (tr *ProductsResourse) RegisterRoutes(m *http.ServeMux) {
 	m.HandleFunc("POST /products", tr.CreateProduct)
 	m.Handle("DELETE /products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.DeleteProduct)))
 	m.Handle("PATCH /products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability)))
-} //alternative for register routes
+	m.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct)))
+	m.Handle("/products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProductAvailability))) 
+	} //alternative for register routes
 
 func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var product enteties.Product
@@ -36,13 +38,7 @@ func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request
 }
 
 func (tr *ProductsResourse) GetAll(w http.ResponseWriter, r *http.Request) {
-	products, err := tr.S.GetAllProducts()
-	if err != nil {
-		http.Error(w, "Unable to fetch products", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(products)
+
 }
 
 func (tr *ProductsResourse) DeleteProduct(w http.ResponseWriter, r *http.Request) {
@@ -97,5 +93,6 @@ func (tr *ProductsResourse) UpdateAvailability(w http.ResponseWriter, r *http.Re
 			w.WriteHeader(http.StatusBadGateway)
 			return
 		}
+		http.Error(w, "Unable to update availability", http.StatusInternalServerError)
 	}
 }
