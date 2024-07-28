@@ -8,4 +8,4 @@ RUN go mod download
 
 RUN go build -o api .
 
-CMD [ "./product-service-projector/api" ]
+CMD [ "./api" ]

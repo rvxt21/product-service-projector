@@ -1,0 +1,25 @@
+services:
+  api:
+    build: .
+    environment:
+      POSTGRES_CONN_STR: "postgres://TemporaryMainuser:TemporaryPasw@database:5432/products?sslmode=disable"
+    depends_on:
+      - database
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/product-service-projector
+
+  database:
+    image: postgres
+    environment:
+      POSTGRES_DB: products
+      POSTGRES_USER: TemporaryMainuser
+      POSTGRES_PASSWORD: TemporaryPasw
+    ports:
+      - "5432:5432"
+    volumes:
+    - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:

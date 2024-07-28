@@ -17,7 +17,7 @@ type ProductsResourse struct {
 
 func (tr *ProductsResourse) RegisterRoutes(m *http.ServeMux) {
 	m.HandleFunc("POST /products", tr.CreateProduct)
-	m.HandleFunc("DELETE /products", tr.DeleteProduct)
+	m.Handle("DELETE /products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.DeleteProduct)))
 	m.Handle("PATCH /products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability)))
 } //alternative for register routes
 
@@ -40,7 +40,12 @@ func (tr *ProductsResourse) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (tr *ProductsResourse) DeleteProduct(w http.ResponseWriter, r *http.Request) {
-
+	id := r.Context().Value(middleware.IdKey).(int)
+	if tr.S.DeleteProduct(id) {
+		w.WriteHeader(http.StatusNoContent)
+	} else {
+		http.Error(w, "Product not found", http.StatusNotFound)
+	}
 }
 
 func (tr *ProductsResourse) UpdateProduct(w http.ResponseWriter, r *http.Request) {
