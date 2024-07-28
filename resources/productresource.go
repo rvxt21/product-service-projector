@@ -36,7 +36,13 @@ func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request
 }
 
 func (tr *ProductsResourse) GetAll(w http.ResponseWriter, r *http.Request) {
-
+	products, err := tr.S.GetAllProducts()
+	if err != nil {
+		http.Error(w, "Unable to fetch products", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(products)
 }
 
 func (tr *ProductsResourse) DeleteProduct(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +55,25 @@ func (tr *ProductsResourse) DeleteProduct(w http.ResponseWriter, r *http.Request
 }
 
 func (tr *ProductsResourse) UpdateProduct(w http.ResponseWriter, r *http.Request) {
+	var product enteties.Product
+	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
 
+	product.ID = r.Context().Value(middleware.IdKey).(int)
+	err := tr.S.UpdateProduct(product)
+	if err != nil {
+		if errors.Is(err, storage.ErrProductNotFound) {
+			http.Error(w, "Product not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Unable to update product", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(product)
 }
 
 type UpdateAvailabilityRequest struct {
@@ -63,7 +87,7 @@ func (tr *ProductsResourse) UpdateAvailability(w http.ResponseWriter, r *http.Re
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Error().Err(err).Msg("error to update availability")
+		log.Error().Err(err).Msg("Error to update availability")
 		return
 	}
 

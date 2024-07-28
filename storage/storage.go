@@ -3,7 +3,6 @@ package storage
 import (
 	"errors"
 	"products/enteties"
-
 	"sync"
 )
 
@@ -29,8 +28,15 @@ func (s *Storage) CreateOneProduct(p enteties.Product) int {
 	return p.ID
 }
 
-func (s *Storage) GetAllProducts() {
+func (s *Storage) GetAllProducts() ([]enteties.Product, error) {
+	s.m.Lock()
+	defer s.m.Unlock()
 
+	products := make([]enteties.Product, 0, len(s.allProducts))
+	for _, product := range s.allProducts {
+		products = append(products, product)
+	}
+	return products, nil
 }
 
 func (s *Storage) DeleteProduct(ID int) bool {
@@ -44,12 +50,20 @@ func (s *Storage) DeleteProduct(ID int) bool {
 	return false
 }
 
-func (s *Storage) UpdateProduct() {
+func (s *Storage) UpdateProduct(p enteties.Product) error {
+	s.m.Lock()
+	defer s.m.Unlock()
 
+	if _, exists := s.allProducts[p.ID]; !exists {
+		return ErrProductNotFound
+	}
+
+	s.allProducts[p.ID] = p
+	return nil
 }
 
 var (
-	ErrProductNotFound = errors.New("product not found")
+	ErrProductNotFound = errors.New("Product not found")
 )
 
 func (s *Storage) UpdateAvailability(id int, availability bool) error {
