@@ -8,8 +8,8 @@ import (
 	"products/middleware"
 	"products/storage"
 
-	"github.com/rs/zerolog/log"
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog/log"
 )
 
 type ProductsResourse struct {
@@ -17,14 +17,14 @@ type ProductsResourse struct {
 }
 
 func (tr *ProductsResourse) RegisterRoutes(m *http.ServeMux) {
-	m.HandleFunc("POST /products", tr.CreateProduct)
+	m.Handle("POST /products", middleware.IdMiddleware(http.HandlerFunc(tr.CreateProduct)))
 	m.Handle("DELETE /products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.DeleteProduct)))
 	m.Handle("PATCH /products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability)))
 	m.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct)))
 	m.Handle("/products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProductAvailability)))
 	m.Handle("GET /products", middleware.IdMiddleware(http.HandlerFunc(tr.GetAll)))
 	m.Handle("GET /products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.GetByID)))
-	} //alternative for register routes
+} //alternative for register routes
 
 func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var product enteties.Product
@@ -42,8 +42,8 @@ func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request
 
 func (tr *ProductsResourse) GetAll(w http.ResponseWriter, r *http.Request) {
 	var catalogue enteties.Catalogue
-	response := struct{
-		Products map[string]string 
+	response := struct {
+		Products map[string]string
 	}{
 		Products: make(map[string]string),
 	}
@@ -73,12 +73,12 @@ func (tr *ProductsResourse) GetByID(w http.ResponseWriter, r *http.Request) {
 		Category    string  `json:"category"`
 		IsAvailable bool    `json:"is_available"`
 	}{
-		ID:   product.ID,
-		Name: product.Name,
+		ID:          product.ID,
+		Name:        product.Name,
 		Description: product.Description,
-		Price: product.Price,
-		Quantity: product.Quantity,
-		Category: product.Category,
+		Price:       product.Price,
+		Quantity:    product.Quantity,
+		Category:    product.Category,
 		IsAvailable: product.IsAvailable,
 	}
 	json.NewEncoder(w).Encode(response)
