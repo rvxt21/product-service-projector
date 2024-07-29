@@ -9,3 +9,7 @@ type Product struct {
 	Category    string  `json:"category"`
 	IsAvailable bool    `json:"is_available"`
 }
+
+type Catalogue struct {
+	Products map[string]Product `json:"catalogue"`
+}
