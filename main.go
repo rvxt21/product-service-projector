@@ -28,7 +28,7 @@ func main() {
 
 	// productResource.RegisterRoutes(mux) //alternative for register routes
 
-	http.HandleFunc("POST /products", productResource.CreateProduct)
+	http.Handle("POST /products", middleware.IdMiddleware(http.HandlerFunc(productResource.CreateProduct)))
 	http.Handle("DELETE /products/{id}", middleware.IdMiddleware(http.HandlerFunc(productResource.DeleteProduct)))
 	http.Handle("PATCH /products/{id}", middleware.IdMiddleware(http.HandlerFunc(productResource.UpdateAvailability)))
 
