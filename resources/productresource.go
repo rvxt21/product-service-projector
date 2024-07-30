@@ -16,13 +16,12 @@ type ProductsResourse struct {
 	S *storage.Storage
 }
 
-func (tr *ProductsResourse) RegisterRoutes(m *http.ServeMux) {
-	m.HandleFunc("POST /products", (tr.CreateProduct))
-	m.Handle("DELETE /products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.DeleteProduct)))
-	m.Handle("PATCH /products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability)))
-	m.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct)))
-	m.HandleFunc("GET /products", tr.GetAll)
-	m.Handle("GET /products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.GetByID)))
+func (tr *ProductsResourse) RegisterRoutes(r *mux.Router) {
+	r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.DeleteProduct))).Methods("DELETE")
+	r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct))).Methods("PATCH")
+	r.HandleFunc("/products", tr.CreateProduct).Methods("POST")
+	r.HandleFunc("/products", tr.GetAll).Methods("GET")
+	r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.GetByID))).Methods("GET")
 } //alternative for register routes
 
 func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request) {

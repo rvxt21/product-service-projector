@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"products/middleware"
 	"products/resources"
 	"products/storage"
 
+	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 )
 
@@ -22,21 +22,14 @@ func main() {
 	}
 	defer db.Close()
 
-	mux := http.NewServeMux()
+	r := mux.NewRouter()
 	store := storage.NewStorage()
 	productResource := &resources.ProductsResourse{S: store}
 
-	// productResource.RegisterRoutes(mux) //alternative for register routes
-
-	mux.HandleFunc("POST /products", productResource.CreateProduct)
-	mux.Handle("DELETE /products/{id}", middleware.IdMiddleware(http.HandlerFunc(productResource.DeleteProduct)))
-	mux.Handle("PATCH /products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(productResource.UpdateAvailability)))
-	mux.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(productResource.UpdateProduct)))
-	mux.HandleFunc("GET /products", productResource.GetAll)
-	mux.Handle("GET /products/{id}", middleware.IdMiddleware(http.HandlerFunc(productResource.GetByID)))
+	productResource.RegisterRoutes(r)
 
 	fmt.Println("Starting server at :8080")
-	errServ := http.ListenAndServe(":8080", mux)
+	errServ := http.ListenAndServe(":8080", r)
 	if errServ != nil {
 		fmt.Println("Error happened", err.Error())
 		return
