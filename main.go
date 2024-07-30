@@ -28,12 +28,12 @@ func main() {
 
 	// productResource.RegisterRoutes(mux) //alternative for register routes
 
-	http.Handle("POST /products", middleware.IdMiddleware(http.HandlerFunc(productResource.CreateProduct)))
-	http.Handle("DELETE /products/{id}", middleware.IdMiddleware(http.HandlerFunc(productResource.DeleteProduct)))
-	http.Handle("PATCH /products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(productResource.UpdateAvailability)))
-	http.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(productResource.UpdateProduct)))
-	http.Handle("GET /products", middleware.IdMiddleware(http.HandlerFunc(productResource.GetAll)))
-	http.Handle("GET /products/{id}", middleware.IdMiddleware(http.HandlerFunc(productResource.GetByID)))
+	mux.HandleFunc("POST /products", productResource.CreateProduct)
+	mux.Handle("DELETE /products/{id}", middleware.IdMiddleware(http.HandlerFunc(productResource.DeleteProduct)))
+	mux.Handle("PATCH /products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(productResource.UpdateAvailability)))
+	mux.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(productResource.UpdateProduct)))
+	mux.HandleFunc("GET /products", productResource.GetAll)
+	mux.Handle("GET /products/{id}", middleware.IdMiddleware(http.HandlerFunc(productResource.GetByID)))
 
 	fmt.Println("Starting server at :8080")
 	errServ := http.ListenAndServe(":8080", mux)

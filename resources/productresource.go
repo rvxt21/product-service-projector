@@ -17,11 +17,11 @@ type ProductsResourse struct {
 }
 
 func (tr *ProductsResourse) RegisterRoutes(m *http.ServeMux) {
-	m.Handle("POST /products", middleware.IdMiddleware(http.HandlerFunc(tr.CreateProduct)))
+	m.HandleFunc("POST /products", (tr.CreateProduct))
 	m.Handle("DELETE /products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.DeleteProduct)))
 	m.Handle("PATCH /products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability)))
 	m.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct)))
-	m.Handle("GET /products", middleware.IdMiddleware(http.HandlerFunc(tr.GetAll)))
+	m.HandleFunc("GET /products", tr.GetAll)
 	m.Handle("GET /products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.GetByID)))
 } //alternative for register routes
 
