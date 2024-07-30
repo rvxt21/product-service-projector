@@ -4,6 +4,7 @@ import (
 	"errors"
 	"products/enteties"
 	"sync"
+	"sort"
 
 	"github.com/rs/zerolog/log"
 )
@@ -32,9 +33,30 @@ func (s *Storage) CreateOneProduct(p enteties.Product) int {
 	return p.ID
 }
 
-// func (s *Storage) GetAllProducts() ([]enteties.Product, error) {
+func (s *Storage) GetAllProducts() []enteties.Product {
+	s.m.Lock()
+	defer s.m.Unlock()
 
-// }
+	var products = make([]enteties.Product, 0, len(s.allProducts))
+
+	for _, t := range s.allProducts {
+		products = append(products, t)
+	}
+
+	sort.Slice(products, func(i, j int) bool {
+		return products[i].ID < products[j].ID
+	})
+
+	return products
+}
+
+func (s *Storage) GetProductByID(id int) (enteties.Product, bool) {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	t, ok := s.allProducts[id]
+	return t, ok
+}
 
 func (s *Storage) DeleteProduct(ID int) bool {
 	const op = "storage.DeleteProduct"
