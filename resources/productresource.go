@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 	"products/enteties"
 	"products/middleware"
 	"products/storage"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
@@ -19,7 +19,8 @@ type ProductsResourse struct {
 
 func (tr *ProductsResourse) RegisterRoutes(r *mux.Router) {
 	r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.DeleteProduct))).Methods("DELETE")
-	r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct))).Methods("PATCH")
+	r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct))).Methods("PUT")
+	r.Handle("/products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability))).Methods("PATCH")
 	r.HandleFunc("/products", tr.CreateProduct).Methods("POST")
 	r.HandleFunc("/products", tr.GetAllProducts).Methods("GET")
 	r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.GetByID))).Methods("GET")
@@ -50,26 +51,26 @@ func (tr *ProductsResourse) GetAllProducts(w http.ResponseWriter, r *http.Reques
 }
 
 func (tr *ProductsResourse) GetByID(w http.ResponseWriter, r *http.Request) {
-   
-    vars := mux.Vars(r)
-    idStr := vars["id"]
-    id, err := strconv.Atoi(idStr)
-    if err != nil {
-        http.Error(w, "Invalid product ID", http.StatusBadRequest)
-        return
-    }
 
-    product, found := tr.S.GetProductByID(id)
-    if !found {
-        http.Error(w, "Product not found", http.StatusNotFound)
-        return
-    }
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid product ID", http.StatusBadRequest)
+		return
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    if err := json.NewEncoder(w).Encode(product); err != nil {
-        http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-        return
-    }
+	product, found := tr.S.GetProductByID(id)
+	if !found {
+		http.Error(w, "Product not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(product); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (tr *ProductsResourse) DeleteProduct(w http.ResponseWriter, r *http.Request) {

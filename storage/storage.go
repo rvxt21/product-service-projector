@@ -3,8 +3,8 @@ package storage
 import (
 	"errors"
 	"products/enteties"
-	"sync"
 	"sort"
+	"sync"
 
 	"github.com/rs/zerolog/log"
 )
@@ -98,5 +98,6 @@ func (s *Storage) UpdateAvailability(id int, availability bool) error {
 	}
 
 	product.IsAvailable = availability
+	s.allProducts[id] = product
 	return nil
 }
