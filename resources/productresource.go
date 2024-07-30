@@ -21,13 +21,8 @@ func (tr *ProductsResourse) RegisterRoutes(m *http.ServeMux) {
 	m.Handle("DELETE /products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.DeleteProduct)))
 	m.Handle("PATCH /products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability)))
 	m.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct)))
-<<<<<<< HEAD
-	// m.Handle("/products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProductAvailability)))
-=======
-	m.Handle("/products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProductAvailability)))
 	m.Handle("GET /products", middleware.IdMiddleware(http.HandlerFunc(tr.GetAll)))
 	m.Handle("GET /products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.GetByID)))
->>>>>>> bc5bbf622d559a21d6d1d672a3911b0d8b594207
 } //alternative for register routes
 
 func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request) {
