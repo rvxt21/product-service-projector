@@ -8,6 +8,7 @@ import (
 	"products/middleware"
 	"products/storage"
 
+	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
 )
 
@@ -16,11 +17,17 @@ type ProductsResourse struct {
 }
 
 func (tr *ProductsResourse) RegisterRoutes(m *http.ServeMux) {
-	m.HandleFunc("POST /products", tr.CreateProduct)
+	m.Handle("POST /products", middleware.IdMiddleware(http.HandlerFunc(tr.CreateProduct)))
 	m.Handle("DELETE /products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.DeleteProduct)))
 	m.Handle("PATCH /products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability)))
 	m.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct)))
+<<<<<<< HEAD
 	// m.Handle("/products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProductAvailability)))
+=======
+	m.Handle("/products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProductAvailability)))
+	m.Handle("GET /products", middleware.IdMiddleware(http.HandlerFunc(tr.GetAll)))
+	m.Handle("GET /products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.GetByID)))
+>>>>>>> bc5bbf622d559a21d6d1d672a3911b0d8b594207
 } //alternative for register routes
 
 func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request) {
@@ -38,7 +45,47 @@ func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request
 }
 
 func (tr *ProductsResourse) GetAll(w http.ResponseWriter, r *http.Request) {
+	var catalogue enteties.Catalogue
+	response := struct {
+		Products map[string]string
+	}{
+		Products: make(map[string]string),
+	}
+	for id, product := range catalogue.Products {
+		response.Products[id] = product.Name
+	}
+	json.NewEncoder(w).Encode(response)
+}
 
+func (tr *ProductsResourse) GetByID(w http.ResponseWriter, r *http.Request) {
+	var catalogue enteties.Catalogue
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	product, exists := catalogue.Products[id]
+	if !exists {
+		http.Error(w, "Product not found", http.StatusNotFound)
+		return
+	}
+
+	response := struct {
+		ID          int     `json:"id"`
+		Name        string  `json:"name"`
+		Description string  `json:"description"`
+		Price       float64 `json:"price"`
+		Quantity    int     `json:"quantity"`
+		Category    string  `json:"category"`
+		IsAvailable bool    `json:"is_available"`
+	}{
+		ID:          product.ID,
+		Name:        product.Name,
+		Description: product.Description,
+		Price:       product.Price,
+		Quantity:    product.Quantity,
+		Category:    product.Category,
+		IsAvailable: product.IsAvailable,
+	}
+	json.NewEncoder(w).Encode(response)
 }
 
 func (tr *ProductsResourse) DeleteProduct(w http.ResponseWriter, r *http.Request) {
