@@ -68,6 +68,7 @@ func (s *Storage) DeleteProduct(ID int) bool {
 		delete(s.allProducts, ID)
 		return true
 	}
+	log.Error().Msgf("%s: product %d not found", op, ID)
 	return false
 }
 
