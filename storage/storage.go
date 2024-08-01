@@ -1,103 +1,102 @@
 package storage
 
 import (
-	"errors"
+	"database/sql"
+	"fmt"
 	"products/enteties"
-	"sort"
 	"sync"
 
+	_ "github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 )
 
-type Storage struct {
-	m           sync.Mutex
-	lastId      int
-	allProducts map[int]enteties.Product
+type DBStorage struct {
+	db *sql.DB
+	m  sync.Mutex
 }
 
-func NewStorage() *Storage {
-	return &Storage{
-		allProducts: make(map[int]enteties.Product),
+func NewDBStorageDb(db *sql.DB) *DBStorage {
+	return &DBStorage{db: db}
+}
+
+func New(connStr string) (*DBStorage, error) {
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return nil, fmt.Errorf("openning database: %w", err)
 	}
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("pinging database: %w", err)
+	}
+	return &DBStorage{db: db}, nil
 }
 
-func (s *Storage) CreateOneProduct(p enteties.Product) int {
+func (s *DBStorage) CreateOneProductDb(p enteties.Product) int {
 	const op = "storage.CreateProduct"
 	s.m.Lock()
 	defer s.m.Unlock()
 
 	log.Info().Msgf("%s: creating product", op)
-	s.lastId++
-	p.ID = s.lastId
-	s.allProducts[p.ID] = p
-	return p.ID
-}
-
-func (s *Storage) GetAllProducts() []enteties.Product {
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	var products = make([]enteties.Product, 0, len(s.allProducts))
-
-	for _, t := range s.allProducts {
-		products = append(products, t)
+	var id int
+	err := s.db.QueryRow(
+		"INSERT INTO products (name, description, price, quantity, category, is_available) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+		p.Name, p.Description, p.Price, p.Quantity, p.Category, p.IsAvailable,
+	).Scan(&id)
+	if err != nil {
+		log.Error().Err(err).Msgf("%s: unable to create product", op)
+		return 0
 	}
 
-	sort.Slice(products, func(i, j int) bool {
-		return products[i].ID < products[j].ID
-	})
-
-	return products
+	return id
 }
 
-func (s *Storage) GetProductByID(id int) (enteties.Product, bool) {
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	t, ok := s.allProducts[id]
-	return t, ok
+func (s *DBStorage) GetAllProductsDb() {
 }
 
-func (s *Storage) DeleteProduct(ID int) bool {
+func (s *DBStorage) GetProductByIDDb(id int) {
+
+}
+
+func (s *DBStorage) DeleteProductDb(id int) (bool, error) {
 	const op = "storage.DeleteProduct"
-	s.m.Lock()
-	defer s.m.Unlock()
 
-	if _, exists := s.allProducts[ID]; exists {
-		log.Info().Msgf("%s: deleting product %d", op, ID)
-		delete(s.allProducts, ID)
-		return true
+	query := `DELETE FROM products WHERE id=$1`
+	res, err := s.db.Exec(query, id)
+	if err != nil {
+		log.Error().Msgf("%s: deleting product: %v", op, err)
+		return false, fmt.Errorf("%s: %w", op, err)
 	}
-	return false
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		log.Error().Msgf("%s: checking rows affected: %v", op, err)
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return rowsAffected > 0, nil
 }
 
-func (s *Storage) UpdateProduct(p enteties.Product) error {
-	const op = "storage.UpdateProduct"
-	s.m.Lock()
-	defer s.m.Unlock()
+func (s *Storage) UpdateProductBd(p enteties.Product) error {
 
-	if _, exists := s.allProducts[p.ID]; !exists {
-		log.Error().Msgf("%s: %s", op, ErrProductNotFound)
-		return ErrProductNotFound
-	}
-
-	s.allProducts[p.ID] = p
-	return nil
 }
 
-var (
-	ErrProductNotFound = errors.New("product not found")
-)
-
-func (s *Storage) UpdateAvailability(id int, availability bool) error {
-	const op = "storage.UpdateAvailability"
-	product, exists := s.allProducts[id]
-	if !exists {
-		log.Error().Msgf("%s: %s", op, ErrProductNotFound)
-		return ErrProductNotFound
+func (db *DBStorage) UpdateProductAvailability(id int, availability bool) error {
+	const op = "storage_db.UpdateProductAvailability"
+	query := `UPDATE products SET availability = $1 WHERE ID = $2;`
+	res, err := db.db.Exec(query, availability, id)
+	if err != nil {
+		log.Error().Err(err).Msgf("%s: %s", op, err)
+		return err
 	}
 
-	product.IsAvailable = availability
-	s.allProducts[id] = product
+	rowAffected, err := res.RowsAffected()
+	if err != nil {
+		log.Info().Err(err).Msgf("%s: %s", op, err)
+		return err
+	}
+
+	if rowAffected == 0 {
+		log.Error().Msgf("%s: error to find product by ID", op)
+		return sql.ErrNoRows
+	}
 	return nil
 }
