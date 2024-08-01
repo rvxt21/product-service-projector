@@ -23,7 +23,7 @@ func main() {
 	defer db.Close()
 
 	r := mux.NewRouter()
-	store := storage.NewStorage(db)
+	store := storage.NewStorage()
 	productResource := &resources.ProductsResourse{S: store}
 
 	productResource.RegisterRoutes(r)
