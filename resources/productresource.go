@@ -3,6 +3,7 @@ package resources
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"products/enteties"
 	"products/middleware"
@@ -10,11 +11,10 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/rs/zerolog/log"
 )
 
 type ProductsResourse struct {
-	S *storage.Storage
+	S *storage.DBStorage
 }
 
 func (tr *ProductsResourse) RegisterRoutes(r *mux.Router) {
@@ -33,7 +33,11 @@ func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	id := tr.S.CreateOneProduct(product)
+	id, err := tr.S.CreateOneProductDb(product)
+	if err != nil {
+		http.Error(w, "Unable to create product", http.StatusInternalServerError)
+		return
+	}
 	product.ID = id
 	w.Header().Set("Content-Type", "application/json")
 	//w.WriteHeader(http.StatusOK)
@@ -75,7 +79,12 @@ func (tr *ProductsResourse) GetByID(w http.ResponseWriter, r *http.Request) {
 
 func (tr *ProductsResourse) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	id := r.Context().Value(middleware.IdKey).(int)
-	if tr.S.DeleteProduct(id) {
+	success, err := tr.S.DeleteProductDb(id)
+	if err != nil {
+		http.Error(w, "Unable to delete product", http.StatusInternalServerError)
+		return
+	}
+	if success {
 		w.WriteHeader(http.StatusNoContent)
 	} else {
 		http.Error(w, "Product not found", http.StatusNotFound)

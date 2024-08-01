@@ -15,7 +15,7 @@ type DBStorage struct {
 	m  sync.Mutex
 }
 
-func NewDBStorageDb(db *sql.DB) *DBStorage {
+func NewDBStorage(db *sql.DB) *DBStorage {
 	return &DBStorage{db: db}
 }
 
@@ -30,7 +30,7 @@ func New(connStr string) (*DBStorage, error) {
 	return &DBStorage{db: db}, nil
 }
 
-func (s *DBStorage) CreateOneProductDb(p enteties.Product) int {
+func (s *DBStorage) CreateOneProductDb(p enteties.Product) (int, error) {
 	const op = "storage.CreateProduct"
 	s.m.Lock()
 	defer s.m.Unlock()
@@ -43,10 +43,10 @@ func (s *DBStorage) CreateOneProductDb(p enteties.Product) int {
 	).Scan(&id)
 	if err != nil {
 		log.Error().Err(err).Msgf("%s: unable to create product", op)
-		return 0
+		return 0, err
 	}
 
-	return id
+	return id, nil
 }
 
 func (s *DBStorage) GetAllProductsDb() {
@@ -58,26 +58,25 @@ func (s *DBStorage) GetProductByIDDb(id int) {
 
 func (s *DBStorage) DeleteProductDb(id int) (bool, error) {
 	const op = "storage.DeleteProduct"
+	s.m.Lock()
+	defer s.m.Unlock()
 
-	query := `DELETE FROM products WHERE id=$1`
-	res, err := s.db.Exec(query, id)
+	result, err := s.db.Exec("DELETE FROM products WHERE id=$1", id)
 	if err != nil {
-		log.Error().Msgf("%s: deleting product: %v", op, err)
-		return false, fmt.Errorf("%s: %w", op, err)
+		log.Error().Err(err).Msgf("%s: unable to delete product", op)
+		return false, err
 	}
 
-	rowsAffected, err := res.RowsAffected()
+	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		log.Error().Msgf("%s: checking rows affected: %v", op, err)
-		return false, fmt.Errorf("%s: %w", op, err)
+		log.Error().Err(err).Msgf("%s: unable to get rows affected", op)
+		return false, err
 	}
 
 	return rowsAffected > 0, nil
 }
 
 func (s *Storage) UpdateProductBd(p enteties.Product) error {
-
-}
 
 func (db *DBStorage) UpdateProductAvailability(id int, availability bool) error {
 	const op = "storage_db.UpdateProductAvailability"

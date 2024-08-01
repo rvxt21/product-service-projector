@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,14 +15,14 @@ func main() {
 	fmt.Println("Product Service Project!")
 
 	connStr := "postgres://TemporaryMainuser:TemporaryPasw@database:5432/products?sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
+
+	store, err := storage.New(connStr)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
+	defer store.db.Close()
 
 	r := mux.NewRouter()
-	store := storage.NewStorage(db)
 	productResource := &resources.ProductsResourse{S: store}
 
 	productResource.RegisterRoutes(r)
