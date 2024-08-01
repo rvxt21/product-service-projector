@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"database/sql"
 	"errors"
 	"products/enteties"
 	"sort"
@@ -10,16 +11,25 @@ import (
 )
 
 type Storage struct {
-	m           sync.Mutex
-	lastId      int
-	allProducts map[int]enteties.Product
+	db *sql.DB
+	m  sync.Mutex
 }
 
-func NewStorage() *Storage {
-	return &Storage{
-		allProducts: make(map[int]enteties.Product),
-	}
+// type Storage struct {
+// 	m           sync.Mutex
+// 	lastId      int
+// 	allProducts map[int]enteties.Product
+// }
+
+func NewStorage(db *sql.DB) *Storage {
+	return &Storage{db: db}
 }
+
+// func NewStorage() *Storage {
+// 	return &Storage{
+// 		allProducts: make(map[int]enteties.Product),
+// 	}
+// }
 
 func (s *Storage) CreateOneProduct(p enteties.Product) int {
 	const op = "storage.CreateProduct"
@@ -27,6 +37,7 @@ func (s *Storage) CreateOneProduct(p enteties.Product) int {
 	defer s.m.Unlock()
 
 	log.Info().Msgf("%s: creating product", op)
+
 	s.lastId++
 	p.ID = s.lastId
 	s.allProducts[p.ID] = p
