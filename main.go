@@ -26,6 +26,11 @@ func main() {
 	}
 	defer store.DB.Close()
 
+	err = store.InitializeDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	r := mux.NewRouter()
 	productResource := &resources.ProductsResourse{S: store}
 	productResource.RegisterRoutes(r)

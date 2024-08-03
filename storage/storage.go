@@ -30,6 +30,40 @@ func New(connStr string) (*DBStorage, error) {
 	return &DBStorage{DB: db}, nil
 }
 
+func (s *DBStorage) InitializeDB() error {
+	createProductsTable := `
+	CREATE TABLE IF NOT EXISTS products (
+		id SERIAL PRIMARY KEY,
+		name VARCHAR(100),
+		description TEXT,
+		price INT,
+		quantity INT,
+		category VARCHAR(100),
+		is_available BOOLEAN
+	);`
+
+	createCategoriesTable := `
+	CREATE TABLE IF NOT EXISTS categories (
+		id SERIAL PRIMARY KEY,
+		name VARCHAR(100) NOT NULL,
+		description TEXT NOT NULL
+	);`
+
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	if _, err := s.DB.Exec(createProductsTable); err != nil {
+		return fmt.Errorf("creating products table: %w", err)
+	}
+
+	if _, err := s.DB.Exec(createCategoriesTable); err != nil {
+		return fmt.Errorf("creating categories table: %w", err)
+	}
+
+	log.Info().Msg("Database initialized successfully")
+	return nil
+}
+
 func (s *DBStorage) CreateOneProductDb(p enteties.Product) (int, error) {
 	const op = "storage.CreateProduct"
 	s.m.Lock()
