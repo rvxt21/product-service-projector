@@ -1,6 +1,6 @@
 CREATE DATABASE products;
 \c products;
-CREATE TABLE IF NOT EXISTS public.products (
+CREATE TABLE IF NOT EXISTS products (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100),
     description TEXT,
@@ -9,8 +9,8 @@ CREATE TABLE IF NOT EXISTS public.products (
     category VARCHAR(100),
     is_available BOOLEAN
 );
-CREATE TABLE IF NOT EXISTS public.categories (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    description TEXT NOT NULL
+CREATE TABLE IF NOT EXISTS category (
+    idCategory SERIAL PRIMARY KEY,
+    nameCategory VARCHAR(100) NOT NULL,
+    descriptionCategory TEXT NOT NULL
 );

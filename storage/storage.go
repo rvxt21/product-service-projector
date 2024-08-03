@@ -43,10 +43,10 @@ func (s *DBStorage) InitializeDB() error {
 	);`
 
 	createCategoriesTable := `
-	CREATE TABLE IF NOT EXISTS categories (
-		id SERIAL PRIMARY KEY,
-		name VARCHAR(100) NOT NULL,
-		description TEXT NOT NULL
+	CREATE TABLE IF NOT EXISTS category (
+		idCategory SERIAL PRIMARY KEY,
+		nameCategory VARCHAR(100) NOT NULL,
+		descriptionCategory TEXT NOT NULL
 	);`
 
 	s.m.Lock()
@@ -82,6 +82,9 @@ func (s *DBStorage) CreateOneProductDb(p enteties.Product) (int, error) {
 
 	return id, nil
 }
+
+// нові функції // func (s *DBStorage) CreateCategory(category enteties.Category) (int, error) {}
+// нові функції //func (s *DBStorage) UpdateCategory(category enteties.Category) error {}
 
 //func (s *DBStorage) GetAllProductsDb() {}
 
