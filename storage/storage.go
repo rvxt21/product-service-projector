@@ -11,12 +11,12 @@ import (
 )
 
 type DBStorage struct {
-	db *sql.DB
+	DB *sql.DB
 	m  sync.Mutex
 }
 
 func NewDBStorage(db *sql.DB) *DBStorage {
-	return &DBStorage{db: db}
+	return &DBStorage{DB: db}
 }
 
 func New(connStr string) (*DBStorage, error) {
@@ -27,7 +27,7 @@ func New(connStr string) (*DBStorage, error) {
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("pinging database: %w", err)
 	}
-	return &DBStorage{db: db}, nil
+	return &DBStorage{DB: db}, nil
 }
 
 func (s *DBStorage) CreateOneProductDb(p enteties.Product) (int, error) {
@@ -37,7 +37,7 @@ func (s *DBStorage) CreateOneProductDb(p enteties.Product) (int, error) {
 
 	log.Info().Msgf("%s: creating product", op)
 	var id int
-	err := s.db.QueryRow(
+	err := s.DB.QueryRow(
 		"INSERT INTO products (name, description, price, quantity, category, is_available) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
 		p.Name, p.Description, p.Price, p.Quantity, p.Category, p.IsAvailable,
 	).Scan(&id)
@@ -49,19 +49,16 @@ func (s *DBStorage) CreateOneProductDb(p enteties.Product) (int, error) {
 	return id, nil
 }
 
-func (s *DBStorage) GetAllProductsDb() {
-}
+//func (s *DBStorage) GetAllProductsDb() {}
 
-func (s *DBStorage) GetProductByIDDb(id int) {
-
-}
+//func (s *DBStorage) GetProductByIDDb(id int) {}
 
 func (s *DBStorage) DeleteProductDb(id int) (bool, error) {
 	const op = "storage.DeleteProduct"
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	result, err := s.db.Exec("DELETE FROM products WHERE id=$1", id)
+	result, err := s.DB.Exec("DELETE FROM products WHERE id=$1", id)
 	if err != nil {
 		log.Error().Err(err).Msgf("%s: unable to delete product", op)
 		return false, err
@@ -76,12 +73,12 @@ func (s *DBStorage) DeleteProductDb(id int) (bool, error) {
 	return rowsAffected > 0, nil
 }
 
-func (s *Storage) UpdateProductBd(p enteties.Product) error {
+//func (s *Storage) UpdateProductBd(p enteties.Product) error {}
 
-func (db *DBStorage) UpdateProductAvailability(id int, availability bool) error {
+func (s *DBStorage) UpdateProductAvailability(id int, availability bool) error {
 	const op = "storage_db.UpdateProductAvailability"
 	query := `UPDATE products SET availability = $1 WHERE ID = $2;`
-	res, err := db.db.Exec(query, availability, id)
+	res, err := s.DB.Exec(query, availability, id)
 	if err != nil {
 		log.Error().Err(err).Msgf("%s: %s", op, err)
 		return err

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"products/resources"
 	"products/storage"
 
@@ -14,23 +15,25 @@ import (
 func main() {
 	fmt.Println("Product Service Project!")
 
-	connStr := "postgres://TemporaryMainuser:TemporaryPasw@database:5432/products?sslmode=disable"
+	connStr := os.Getenv("POSTGRES_CONN_STR")
+	if connStr == "" {
+		log.Fatal("Environment variable POSTGRES_CONN_STR is required")
+	}
 
 	store, err := storage.New(connStr)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer store.db.Close()
+	defer store.DB.Close()
 
 	r := mux.NewRouter()
 	productResource := &resources.ProductsResourse{S: store}
-
 	productResource.RegisterRoutes(r)
 
 	fmt.Println("Starting server at :8080")
 	errServ := http.ListenAndServe(":8080", r)
 	if errServ != nil {
-		fmt.Println("Error happened", err.Error())
+		fmt.Println("Error happened, %v", errServ.Error)
 		return
 	}
 }
