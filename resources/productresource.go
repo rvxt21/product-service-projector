@@ -24,6 +24,7 @@ func (tr *ProductsResourse) RegisterRoutes(r *mux.Router) {
 	r.Handle("/products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability))).Methods("PATCH")
 	r.HandleFunc("/products", tr.CreateProduct).Methods("POST")
 	r.HandleFunc("/products", tr.GetAllProducts).Methods("GET")
+	r.HandleFunc("/products/by-ids", tr.GetProductsByIDS).Methods("GET")
 	//r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.GetByID))).Methods("GET")
 
 	r.HandleFunc("/categories", tr.CreateCategory).Methods("POST")
@@ -76,6 +77,26 @@ func (tr *ProductsResourse) GetAllProducts(w http.ResponseWriter, r *http.Reques
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(products)
+}
+
+func (tr *ProductsResourse) GetProductsByIDS(w http.ResponseWriter, r *http.Request) {
+	idsStr := r.URL.Query().Get("ids")
+	if idsStr == "" {
+		http.Error(w, "No IDs provided", http.StatusBadRequest)
+		return
+	}
+
+	products, err := tr.S.GetProductsByIDSDB(idsStr)
+	if err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(products)
+	if err != nil {
+		log.Error().Msgf("Failed to encode response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
 }
 
 func (tr *ProductsResourse) GetProductByID(w http.ResponseWriter, r *http.Request) {
