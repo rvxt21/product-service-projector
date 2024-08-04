@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS products (
     category VARCHAR(100),
     is_available BOOLEAN
 );
-CREATE TABLE IF NOT EXISTS category (
+CREATE TABLE IF NOT EXISTS categories (
     idCategory SERIAL PRIMARY KEY,
     nameCategory VARCHAR(100) NOT NULL,
     descriptionCategory TEXT NOT NULL

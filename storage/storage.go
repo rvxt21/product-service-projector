@@ -2,12 +2,17 @@ package storage
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"products/enteties"
 	"sync"
 
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog/log"
+)
+
+var (
+	ErrCategoryNotFound = errors.New("category not found")
 )
 
 type DBStorage struct {
@@ -43,7 +48,7 @@ func (s *DBStorage) InitializeDB() error {
 	);`
 
 	createCategoriesTable := `
-	CREATE TABLE IF NOT EXISTS category (
+	CREATE TABLE IF NOT EXISTS categories (
 		idCategory SERIAL PRIMARY KEY,
 		nameCategory VARCHAR(100) NOT NULL,
 		descriptionCategory TEXT NOT NULL
@@ -82,9 +87,6 @@ func (s *DBStorage) CreateOneProductDb(p enteties.Product) (int, error) {
 
 	return id, nil
 }
-
-// нові функції // func (s *DBStorage) CreateCategory(category enteties.Category) (int, error) {}
-// нові функції //func (s *DBStorage) UpdateCategory(category enteties.Category) error {}
 
 func (s *DBStorage) GetAllProductsDb() ([]enteties.Product, error) {
 	const op = "storage.GetAllProducts"
@@ -155,4 +157,100 @@ func (s *DBStorage) UpdateProductAvailability(id int, availability bool) error {
 		return sql.ErrNoRows
 	}
 	return nil
+}
+
+func (s *DBStorage) GetAllCategoriesDb() ([]enteties.Category, error) {
+	const op = "storage.GetAllCategories"
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	rows, err := s.DB.Query("SELECT idCategory, nameCategory, descriptionCategory FROM categories")
+	if err != nil {
+		log.Error().Err(err).Msgf("%s: unable to get all categories", op)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var categories []enteties.Category
+	for rows.Next() {
+		var c enteties.Category
+		if err := rows.Scan(&c.IdCategory, &c.NameCategory, &c.DescriptionCategory); err != nil {
+			log.Error().Err(err).Msgf("%s: unable to scan category", op)
+			return nil, err
+		}
+		categories = append(categories, c)
+	}
+
+	return categories, nil
+}
+
+func (s *DBStorage) CreateCategory(c enteties.Category) (int, error) {
+	const op = "storage.CreateCategory"
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	var id int
+	err := s.DB.QueryRow(
+		"INSERT INTO categories (nameCategory, descriptionCategory) VALUES ($1, $2) RETURNING idCategory",
+		c.NameCategory, c.DescriptionCategory,
+	).Scan(&id)
+	if err != nil {
+		log.Error().Err(err).Msgf("%s: unable to create category", op)
+		return 0, err
+	}
+
+	return id, nil
+}
+
+func (s *DBStorage) UpdateCategory(c enteties.Category) error {
+	const op = "storage.UpdateCategory"
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	_, err := s.DB.Exec("UPDATE categories SET nameCategory=$1, descriptionCategory=$2 WHERE idCategory=$3",
+		c.NameCategory, c.DescriptionCategory, c.IdCategory)
+	if err != nil {
+		log.Error().Err(err).Msgf("%s: unable to update category", op)
+		return err
+	}
+
+	return nil
+}
+
+func (s *DBStorage) GetCategoryByID(id int) (enteties.Category, bool, error) {
+	const op = "storage.GetCategoryByID"
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	var c enteties.Category
+	err := s.DB.QueryRow("SELECT idCategory, nameCategory, descriptionCategory FROM categories WHERE idCategory = $1", id).Scan(&c.IdCategory, &c.NameCategory, &c.DescriptionCategory)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Error().Err(err).Msgf("%s: unable to get category", op)
+			return c, false, nil
+		}
+		return c, false, err
+	}
+
+	return c, true, nil
+}
+
+func (s *DBStorage) DeleteCategory(id int) (bool, error) {
+	const op = "storage.DeleteCategory"
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	result, err := s.DB.Exec("DELETE FROM categories WHERE idCategory=$1", id)
+	if err != nil {
+		log.Error().Err(err).Msgf("%s: unable to delete category", op)
+		return false, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Error().Err(err).Msgf("%s: unable to get rows affected", op)
+		return false, err
+	}
+
+	return rowsAffected > 0, nil
 }
