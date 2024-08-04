@@ -88,18 +88,14 @@ func (s *DBStorage) CreateOneProductDb(p enteties.Product) (int, error) {
 	return id, nil
 }
 
-func (s *DBStorage) GetAllProductsDb() ([]enteties.Product, error) {
-// нові функції // func (s *DBStorage) CreateCategory(category enteties.Category) (int, error) {}
-// нові функції //func (s *DBStorage) UpdateCategory(category enteties.Category) error {}
-
 func (s *DBStorage) GetAllProductsDb(limit, offset int) ([]enteties.Product, error) {
 	const op = "storage.GetAllProducts"
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	query := `SELECT id, name, description, price, quantity, category, is_available 
-			  FROM products 
-			  LIMIT $1 
+	query := `SELECT id, name, description, price, quantity, category, is_available
+			  FROM products
+			  LIMIT $1
 			  OFFSET $2`
 	rows, err := s.DB.Query(query, limit, offset)
 	if err != nil {
