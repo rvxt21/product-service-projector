@@ -2,6 +2,7 @@ package resources
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"products/enteties"
@@ -18,7 +19,7 @@ type ProductsResourse struct {
 func (tr *ProductsResourse) RegisterRoutes(r *mux.Router) {
 	r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.DeleteProduct))).Methods("DELETE")
 	//r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct))).Methods("PUT")
-	//r.Handle("/products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability))).Methods("PATCH")
+	r.Handle("/products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability))).Methods("PATCH")
 	r.HandleFunc("/products", tr.CreateProduct).Methods("POST")
 	r.HandleFunc("/products", tr.GetAllProducts).Methods("GET")
 	//r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.GetByID))).Methods("GET")
@@ -118,27 +119,27 @@ func (tr *ProductsResourse) DeleteProduct(w http.ResponseWriter, r *http.Request
 // 	json.NewEncoder(w).Encode(product)
 // }
 
-// type UpdateAvailabilityRequest struct {
-// 	IsAvailable bool `json:"is_available"`
-// }
+type UpdateAvailabilityRequest struct {
+	IsAvailable bool `json:"is_available"`
+}
 
-// func (tr *ProductsResourse) UpdateAvailability(w http.ResponseWriter, r *http.Request) {
-// 	var req UpdateAvailabilityRequest
+func (tr *ProductsResourse) UpdateAvailability(w http.ResponseWriter, r *http.Request) {
+	var req UpdateAvailabilityRequest
 
-// 	productID := r.Context().Value(middleware.IdKey).(int)
+	productID := r.Context().Value(middleware.IdKey).(int)
 
-// 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-// 		w.WriteHeader(http.StatusBadRequest)
-// 		log.Error().Err(err).Msg("Error to update availability")
-// 		return
-// 	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Error().Err(err).Msg("Error to update availability")
+		return
+	}
 
-// 	err := tr.S.UpdateAvailability(productID, req.IsAvailable)
-// 	if err != nil {
-// 		if errors.Is(err, storage.ErrProductNotFound) {
-// 			w.WriteHeader(http.StatusBadGateway)
-// 			return
-// 		}
-// 		http.Error(w, "Unable to update availability", http.StatusInternalServerError)
-// 	}
-// }
+	err := tr.S.UpdateProductAvailability(productID, req.IsAvailable)
+	if err != nil {
+		if errors.Is(err, storage.ErrProductNotFound) {
+			w.WriteHeader(http.StatusBadGateway)
+			return
+		}
+		http.Error(w, "Unable to update availability", http.StatusInternalServerError)
+	}
+}
