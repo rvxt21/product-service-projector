@@ -8,6 +8,7 @@ import (
 	"products/middleware"
 	"products/storage"
 	"strconv"
+	"database/sql"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
@@ -19,7 +20,7 @@ type ProductsResourse struct {
 
 func (tr *ProductsResourse) RegisterRoutes(r *mux.Router) {
 	r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.DeleteProduct))).Methods("DELETE")
-	//r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct))).Methods("PUT")
+	r.HandleFunc("/product/{id}", tr.UpdateProduct).Methods("PUT")
 	r.Handle("/products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability))).Methods("PATCH")
 	r.HandleFunc("/products", tr.CreateProduct).Methods("POST")
 	r.HandleFunc("/products", tr.GetAllProducts).Methods("GET")
@@ -106,27 +107,37 @@ func (tr *ProductsResourse) DeleteProduct(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// func (tr *ProductsResourse) UpdateProduct(w http.ResponseWriter, r *http.Request) {
-// 	var product enteties.Product
-// 	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
-// 		http.Error(w, "Invalid input", http.StatusBadRequest)
-// 		return
-// 	}
+func (tr *ProductsResourse) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
-// 	product.ID = r.Context().Value(middleware.IdKey).(int)
-// 	err := tr.S.UpdateProduct(product)
-// 	if err != nil {
-// 		if errors.Is(err, storage.ErrProductNotFound) {
-// 			http.Error(w, "Product not found", http.StatusNotFound)
-// 		} else {
-// 			http.Error(w, "Unable to update product", http.StatusInternalServerError)
-// 		}
-// 		return
-// 	}
+	vars := mux.Vars(r)
+	idStr := vars["id"]
 
-// 	w.Header().Set("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(product)
-// }
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id < 1 {
+		http.Error(w, "Invalid product ID", http.StatusBadRequest)
+		return
+	}
+
+	var product enteties.Product
+	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	product.ID = id
+
+	if err := tr.S.UpdateProductBd(product); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Product not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Unable to update product", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(product)
+}
 
 type UpdateAvailabilityRequest struct {
 	IsAvailable bool `json:"is_available"`
