@@ -2,6 +2,7 @@ package storage
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"products/enteties"
 	"sync"
@@ -135,9 +136,13 @@ func (s *DBStorage) DeleteProductDb(id int) (bool, error) {
 
 //func (s *Storage) UpdateProductBd(p enteties.Product) error {}
 
-func (s *DBStorage) UpdateProductAvailability(id int, availability bool) error {
+var (
+	ErrProductNotFound = errors.New("product not found")
+)
+
+func (s *DBStorage) UpdateProductAvailabilityDB(id int, availability bool) error {
 	const op = "storage_db.UpdateProductAvailability"
-	query := `UPDATE products SET availability = $1 WHERE ID = $2;`
+	query := `UPDATE products SET is_available = $1 WHERE id = $2;`
 	res, err := s.DB.Exec(query, availability, id)
 	if err != nil {
 		log.Error().Err(err).Msgf("%s: %s", op, err)
