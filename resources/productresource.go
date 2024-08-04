@@ -3,11 +3,12 @@ package resources
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"products/enteties"
 	"products/middleware"
 	"products/storage"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/gorilla/mux"
 )
