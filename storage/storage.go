@@ -158,7 +158,20 @@ func (s *DBStorage) DeleteProductDb(id int) (bool, error) {
 	return rowsAffected > 0, nil
 }
 
-//func (s *Storage) UpdateProductBd(p enteties.Product) error {}
+func (s *DBStorage) UpdateProductBd(p enteties.Product) error {
+	const op = "storage.UpdateProductBd"
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	query := `UPDATE products SET name = $1, description = $2, price = $3, quantity = $4, category = $5, is_available = $6 WHERE id = $7`
+	_, err := s.DB.Exec(query, p.Name, p.Description, p.Price, p.Quantity, p.Category, p.IsAvailable, p.ID)
+	if err != nil {
+		log.Error().Err(err).Msgf("%s: unable to update product", op)
+		return err
+	}
+
+	return nil
+}
 
 var (
 	ErrProductNotFound = errors.New("product not found")
