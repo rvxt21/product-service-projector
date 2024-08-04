@@ -2,6 +2,7 @@ package resources
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"products/enteties"
 	"products/middleware"
@@ -19,39 +20,42 @@ func (tr *ProductsResourse) RegisterRoutes(r *mux.Router) {
 	//r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct))).Methods("PUT")
 	//r.Handle("/products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability))).Methods("PATCH")
 	r.HandleFunc("/products", tr.CreateProduct).Methods("POST")
-	//r.HandleFunc("/products", tr.GetAllProducts).Methods("GET")
+	r.HandleFunc("/products", tr.GetAllProducts).Methods("GET")
 	//r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.GetByID))).Methods("GET")
 } //alternative for register routes
 
 func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var product enteties.Product
 	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
+		log.Printf("Failed to decode request body: %v", err)
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
 
 	id, err := tr.S.CreateOneProductDb(product)
 	if err != nil {
+		log.Printf("Failed to create product in database: %v", err)
 		http.Error(w, "Unable to create product", http.StatusInternalServerError)
 		return
 	}
 	product.ID = id
 	w.Header().Set("Content-Type", "application/json")
-	//w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(product)
+	if err := json.NewEncoder(w).Encode(product); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
 }
 
-// func (tr *ProductsResourse) GetAllProducts(w http.ResponseWriter, r *http.Request) {
-// 	products := tr.S.GetAllProductsDb()
+func (tr *ProductsResourse) GetAllProducts(w http.ResponseWriter, r *http.Request) {
+	products, err := tr.S.GetAllProductsDb()
 
-// 	err := json.NewEncoder(w).Encode(products)
-// 	if err != nil {
-// 		http.Error(w, "Invalid request", http.StatusBadRequest)
-// 		return
-// 	}
-// 	w.Header().Set("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(products)
-// }
+	if err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(products)
+}
 
 // func (tr *ProductsResourse) GetByID(w http.ResponseWriter, r *http.Request) {
 
@@ -80,12 +84,14 @@ func (tr *ProductsResourse) DeleteProduct(w http.ResponseWriter, r *http.Request
 	id := r.Context().Value(middleware.IdKey).(int)
 	success, err := tr.S.DeleteProductDb(id)
 	if err != nil {
+		log.Printf("Failed to delete product from database: %v", err)
 		http.Error(w, "Unable to delete product", http.StatusInternalServerError)
 		return
 	}
 	if success {
 		w.WriteHeader(http.StatusNoContent)
 	} else {
+		log.Printf("Product with ID %d not found", id)
 		http.Error(w, "Product not found", http.StatusNotFound)
 	}
 }

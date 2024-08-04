@@ -86,7 +86,30 @@ func (s *DBStorage) CreateOneProductDb(p enteties.Product) (int, error) {
 // нові функції // func (s *DBStorage) CreateCategory(category enteties.Category) (int, error) {}
 // нові функції //func (s *DBStorage) UpdateCategory(category enteties.Category) error {}
 
-//func (s *DBStorage) GetAllProductsDb() {}
+func (s *DBStorage) GetAllProductsDb() ([]enteties.Product, error) {
+	const op = "storage.GetAllProducts"
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	rows, err := s.DB.Query("SELECT id, name, description, price, quantity, category, is_available FROM products")
+	if err != nil {
+		log.Error().Err(err).Msgf("%s: unable to get all products", op)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var products []enteties.Product
+	for rows.Next() {
+		var p enteties.Product
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Quantity, &p.Category, &p.IsAvailable); err != nil {
+			log.Error().Err(err).Msgf("%s: unable to scan product", op)
+			return nil, err
+		}
+		products = append(products, p)
+	}
+
+	return products, nil
+}
 
 //func (s *DBStorage) GetProductByIDDb(id int) {}
 
