@@ -7,6 +7,7 @@ import (
 	"products/enteties"
 	"products/middleware"
 	"products/storage"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
@@ -48,7 +49,18 @@ func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request
 }
 
 func (tr *ProductsResourse) GetAllProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := tr.S.GetAllProductsDb()
+	strLimit := r.URL.Query().Get("limit")
+	strOffset := r.URL.Query().Get("offset")
+
+	limit, err := strconv.Atoi(strLimit)
+	if err != nil || limit < 1 {
+		limit = 10
+	}
+	offset, err := strconv.Atoi(strOffset)
+	if err != nil || offset < 1 {
+		offset = 0
+	}
+	products, err := tr.S.GetAllProductsDb(limit, offset)
 
 	if err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
