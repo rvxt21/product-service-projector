@@ -7,6 +7,7 @@ import (
 	"products/enteties"
 	"products/middleware"
 	"products/storage"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
@@ -22,7 +23,7 @@ func (tr *ProductsResourse) RegisterRoutes(r *mux.Router) {
 	r.Handle("/products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability))).Methods("PATCH")
 	r.HandleFunc("/products", tr.CreateProduct).Methods("POST")
 	r.HandleFunc("/products", tr.GetAllProducts).Methods("GET")
-	//r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.GetByID))).Methods("GET")
+	r.HandleFunc("/product/{id}", tr.GetProductByID).Methods("GET")
 } //alternative for register routes
 
 func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +49,18 @@ func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request
 }
 
 func (tr *ProductsResourse) GetAllProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := tr.S.GetAllProductsDb()
+	strLimit := r.URL.Query().Get("limit")
+	strOffset := r.URL.Query().Get("offset")
+
+	limit, err := strconv.Atoi(strLimit)
+	if err != nil || limit < 1 {
+		limit = 10
+	}
+	offset, err := strconv.Atoi(strOffset)
+	if err != nil || offset < 1 {
+		offset = 0
+	}
+	products, err := tr.S.GetAllProductsDb(limit, offset)
 
 	if err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
@@ -58,28 +70,25 @@ func (tr *ProductsResourse) GetAllProducts(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(products)
 }
 
-// func (tr *ProductsResourse) GetByID(w http.ResponseWriter, r *http.Request) {
+func (tr *ProductsResourse) GetProductByID(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
 
-// 	vars := mux.Vars(r)
-// 	idStr := vars["id"]
-// 	id, err := strconv.Atoi(idStr)
-// 	if err != nil {
-// 		http.Error(w, "Invalid product ID", http.StatusBadRequest)
-// 		return
-// 	}
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id < 1 {
+		http.Error(w, "Invalid product ID", http.StatusBadRequest)
+		return
+	}
 
-// 	product, found := tr.S.GetProductByID(id)
-// 	if !found {
-// 		http.Error(w, "Product not found", http.StatusNotFound)
-// 		return
-// 	}
+	product, err := tr.S.GetProductByIDDb(id)
+	if err != nil {
+		http.Error(w, "Product not found", http.StatusNotFound)
+		return
+	}
 
-// 	w.Header().Set("Content-Type", "application/json")
-// 	if err := json.NewEncoder(w).Encode(product); err != nil {
-// 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-// 		return
-// 	}
-// }
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(product)
+}
 
 func (tr *ProductsResourse) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	id := r.Context().Value(middleware.IdKey).(int)
