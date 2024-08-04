@@ -117,6 +117,36 @@ func (s *DBStorage) GetAllProductsDb(limit, offset int) ([]enteties.Product, err
 	return products, nil
 }
 
+func (s *DBStorage) GetProductsByIDSDB(selectingIds string) ([]enteties.Product, error) {
+	const op = "storage.GetProductsByIDS"
+
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	query := `SELECT * FROM products
+			  WHERE id IN (` + selectingIds + ")"
+
+	rows, err := s.DB.Query(query)
+	if err != nil {
+		log.Error().Err(err).Msgf("%s: unable to get range of products", op)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var products []enteties.Product
+	for rows.Next() {
+		var p enteties.Product
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Quantity, &p.Category, &p.IsAvailable); err != nil {
+			log.Error().Err(err).Msgf("%s: unable to scan product", op)
+			return nil, err
+		}
+		products = append(products, p)
+	}
+
+	return products, nil
+
+}
+
 func (s *DBStorage) GetProductByIDDb(id int) (enteties.Product, error) {
 	const op = "storage.GetProductByIDDb"
 	s.m.Lock()
