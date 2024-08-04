@@ -116,7 +116,27 @@ func (s *DBStorage) GetAllProductsDb(limit, offset int) ([]enteties.Product, err
 	return products, nil
 }
 
-//func (s *DBStorage) GetProductByIDDb(id int) {}
+func (s *DBStorage) GetProductByIDDb(id int) (enteties.Product, error) {
+	const op = "storage.GetProductByIDDb"
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	var p enteties.Product
+	err := s.DB.QueryRow(
+		"SELECT id, name, description, price, quantity, category, is_available FROM products WHERE id = $1",
+		id,
+	).Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Quantity, &p.Category, &p.IsAvailable)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Warn().Msgf("%s: product not found with id %d", op, id)
+			return enteties.Product{}, nil
+		}
+		log.Error().Err(err).Msgf("%s: unable to get product by id", op)
+		return enteties.Product{}, err
+	}
+
+	return p, nil
+}
 
 func (s *DBStorage) DeleteProductDb(id int) (bool, error) {
 	const op = "storage.DeleteProduct"
