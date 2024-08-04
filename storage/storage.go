@@ -89,11 +89,19 @@ func (s *DBStorage) CreateOneProductDb(p enteties.Product) (int, error) {
 }
 
 func (s *DBStorage) GetAllProductsDb() ([]enteties.Product, error) {
+// нові функції // func (s *DBStorage) CreateCategory(category enteties.Category) (int, error) {}
+// нові функції //func (s *DBStorage) UpdateCategory(category enteties.Category) error {}
+
+func (s *DBStorage) GetAllProductsDb(limit, offset int) ([]enteties.Product, error) {
 	const op = "storage.GetAllProducts"
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	rows, err := s.DB.Query("SELECT id, name, description, price, quantity, category, is_available FROM products")
+	query := `SELECT id, name, description, price, quantity, category, is_available 
+			  FROM products 
+			  LIMIT $1 
+			  OFFSET $2`
+	rows, err := s.DB.Query(query, limit, offset)
 	if err != nil {
 		log.Error().Err(err).Msgf("%s: unable to get all products", op)
 		return nil, err
@@ -113,7 +121,27 @@ func (s *DBStorage) GetAllProductsDb() ([]enteties.Product, error) {
 	return products, nil
 }
 
-//func (s *DBStorage) GetProductByIDDb(id int) {}
+func (s *DBStorage) GetProductByIDDb(id int) (enteties.Product, error) {
+	const op = "storage.GetProductByIDDb"
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	var p enteties.Product
+	err := s.DB.QueryRow(
+		"SELECT id, name, description, price, quantity, category, is_available FROM products WHERE id = $1",
+		id,
+	).Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Quantity, &p.Category, &p.IsAvailable)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Warn().Msgf("%s: product not found with id %d", op, id)
+			return enteties.Product{}, nil
+		}
+		log.Error().Err(err).Msgf("%s: unable to get product by id", op)
+		return enteties.Product{}, err
+	}
+
+	return p, nil
+}
 
 func (s *DBStorage) DeleteProductDb(id int) (bool, error) {
 	const op = "storage.DeleteProduct"
@@ -135,11 +163,28 @@ func (s *DBStorage) DeleteProductDb(id int) (bool, error) {
 	return rowsAffected > 0, nil
 }
 
-//func (s *Storage) UpdateProductBd(p enteties.Product) error {}
+func (s *DBStorage) UpdateProductBd(p enteties.Product) error {
+	const op = "storage.UpdateProductBd"
+	s.m.Lock()
+	defer s.m.Unlock()
 
-func (s *DBStorage) UpdateProductAvailability(id int, availability bool) error {
+	query := `UPDATE products SET name = $1, description = $2, price = $3, quantity = $4, category = $5, is_available = $6 WHERE id = $7`
+	_, err := s.DB.Exec(query, p.Name, p.Description, p.Price, p.Quantity, p.Category, p.IsAvailable, p.ID)
+	if err != nil {
+		log.Error().Err(err).Msgf("%s: unable to update product", op)
+		return err
+	}
+
+	return nil
+}
+
+var (
+	ErrProductNotFound = errors.New("product not found")
+)
+
+func (s *DBStorage) UpdateProductAvailabilityDB(id int, availability bool) error {
 	const op = "storage_db.UpdateProductAvailability"
-	query := `UPDATE products SET availability = $1 WHERE ID = $2;`
+	query := `UPDATE products SET is_available = $1 WHERE id = $2;`
 	res, err := s.DB.Exec(query, availability, id)
 	if err != nil {
 		log.Error().Err(err).Msgf("%s: %s", op, err)
