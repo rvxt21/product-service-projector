@@ -40,14 +40,14 @@ const UserRoleKey = "userRole"
 const AdminRole = "admin"
 
 func AdminMiddleware(next http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        role, ok := r.Context().Value(UserRoleKey).(string)
-        if !ok || role != AdminRole {
-            http.Error(w, "Forbidden: You are not allowed to perform this action", http.StatusForbidden)
-            return
-        }
-        next.ServeHTTP(w, r)
-    })
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		role, ok := r.Context().Value(UserRoleKey).(string)
+		if !ok || role != AdminRole {
+			http.Error(w, "Forbidden: You are not allowed to perform this action", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func MockAuthenticationMiddleware(next http.Handler) http.Handler {
