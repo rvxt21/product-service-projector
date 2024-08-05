@@ -2,8 +2,8 @@ package resources
 
 import (
 	"net/http"
-	"products/middleware"
-	"products/storage"
+	"products/internal/middleware"
+	"products/internal/storage"
 
 	"github.com/gorilla/mux"
 )

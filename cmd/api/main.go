@@ -5,8 +5,9 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"products/resources"
-	"products/storage"
+
+	"products/internal/resources"
+	"products/internal/storage"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"

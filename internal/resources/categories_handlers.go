@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"products/enteties"
-	"products/middleware"
-	"products/storage"
+	"products/internal/enteties"
+	"products/internal/middleware"
+	"products/internal/storage"
 
 	"github.com/rs/zerolog/log"
 )

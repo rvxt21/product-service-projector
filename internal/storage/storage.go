@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"products/enteties"
+	"products/internal/enteties"
 	"sync"
 
 	"github.com/lib/pq"
