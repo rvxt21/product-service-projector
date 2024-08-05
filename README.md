@@ -1,33 +1,28 @@
-# Product Management API
 
-## Description
-
-This API provides opportunities for managing products in the system. The API supports the creation, deletion, viewing, and full and partial updating of product information.
-
-## Endpoints
+## API Reference
 
 ### 1. Create product
 
-- **Method:** `POST`
-- **URL:** `/products`
-- **Description:** Adds new product to the system.
-- **Request body (JSON):**
+```http
+  POST /products
+```
+ - **Request body (JSON):**
   ```json
   {
     "name": "Product Name",
     "description": "Product Description",
     "price": 19.99,
     "quantity": 10,
-    "category": "Category Name",
+    "category": 1,
     "is_available": true
   }
   ```
 
-### 2. Get all product
+### 2. Get all products
 
-- **Method:** `GET`
-- **URL:** `/products`
-- **Description:** Returns all product from the system.
+```http
+  GET /products
+```
 - **Response:**
   - **Status:** `200 OK`
   - **Content-Type:** `application/json`
@@ -40,8 +35,10 @@ This API provides opportunities for managing products in the system. The API sup
         "description": "Product Description",
         "price": 19.99,
         "quantity": 10,
-        "category": "Category Name",
-        "is_available": true
+        "category": 1,
+        "is_available": true,
+        "category_name": "Category Name",
+	    "category_description": "Category Description"
       },
       {
         "id": 2,
@@ -49,19 +46,25 @@ This API provides opportunities for managing products in the system. The API sup
         "description": "Another Description",
         "price": 29.99,
         "quantity": 5,
-        "category": "Another Category",
-        "is_available": false
+        "category": 2,
+        "is_available": false,
+        "category_name": "Category Name",
+	    "category_description": "Category Description"
       }
     ]
     ```
-- **Notes:**
-  - If there are no products in the system, the response will be an empty array `[]`.
 
-### 3. Get Product by ID
 
-- **Method:** `GET`
-- **URL:** `/products/{id}`
-- **Description:** Retrieves a product by its ID.
+### 3. Get product
+
+```http
+  GET /products/{id}
+```
+
+| Parameter | Type     | Description                       |
+| :-------- | :------- | :-------------------------------- |
+| `id`      | `int` | **Required**. Id of item to fetch |
+
 - **Response:**
   - **Status:** `200 OK`
   - **Content-Type:** `application/json`
@@ -73,16 +76,21 @@ This API provides opportunities for managing products in the system. The API sup
       "description": "Product Description",
       "price": 19.99,
       "quantity": 10,
-      "category": "Category Name",
-      "is_available": true
+      "category": 2,
+      "is_available": false,
+      "category_name": "Category Name",
+	  "category_description": "Category Description"
     }
     ```
-
 ### 4. Update Product by ID
 
-- **Method:** `UPDATE`
-- **URL:** `/products/{id}`
-- **Description:** Updates a product's details by its ID.
+```http
+  PUT /products/{id}
+```
+
+| Parameter | Type     | Description                       |
+| :-------- | :------- | :-------------------------------- |
+| `id`      | `int` | **Required**. Id of item to fetch |
 - **Request:**
   - **Content-Type:** `application/json`
   - **Body:** (example with all possible fields)
@@ -92,16 +100,20 @@ This API provides opportunities for managing products in the system. The API sup
       "description": "Updated Description",
       "price": 25.99,
       "quantity": 15,
-      "category": "Updated Category",
+      "category": 2,
       "is_available": false
     }
     ```
 
 ### 5. Update Product Availability
+```http
+  PATCH /products/availability/{id}
+```
 
-- **Method:** `PATCH`
-- **URL:** `/products/availability/{id}`
-- **Description:** Updates the availability status of a product by its ID.
+| Parameter | Type     | Description                       |
+| :-------- | :------- | :-------------------------------- |
+| `id`      | `int` | **Required**. Id of item to fetch |
+
 - **Request:**
   - **Content-Type:** `application/json`
   - **Body:**
@@ -113,8 +125,101 @@ This API provides opportunities for managing products in the system. The API sup
 
 ### 6. Delete Product by ID
 
-- **Method:** `DELETE`
-- **URL:** `/products/{id}`
-- **Description:** Deletes a product by its ID.
+```http
+  DELETE /products/{id}
+```
+
+| Parameter | Type     | Description                       |
+| :-------- | :------- | :-------------------------------- |
+| `id`      | `int` | **Required**. Id of item to fetch |
+
+
+
+## Category
+### 1. Create category
+
+```http
+  POST /categories
+```
+ - **Request body (JSON):**
+  ```json
+  {
+	"nameCategory": "Category name",
+	"descriptionCategory": "Category description"
+}
+  ```
+
+### 2. Get all categories
+
+```http
+  GET /categories
+```
 - **Response:**
-  - **Status:** `204 No Content`
+  - **Status:** `200 OK`
+  - **Content-Type:** `application/json`
+  - **Body:**
+    ```json
+        [
+        {
+            "idCategory": 2,
+            "nameCategory": "Clothing",
+            "descriptionCategory": "Apparel and accessories"
+        },
+        {
+            "idCategory": 3,
+            "nameCategory": "Books",
+            "descriptionCategory": "Printed and digital books"
+        }
+        ]
+    ```
+
+
+### 3. Get category
+
+```http
+  GET /categories/{id}
+```
+
+| Parameter | Type     | Description                       |
+| :-------- | :------- | :-------------------------------- |
+| `id`      | `int` | **Required**. Id of item to fetch |
+
+- **Response:**
+  - **Status:** `200 OK`
+  - **Content-Type:** `application/json`
+  - **Body:**
+    ```json
+    {
+        "idCategory": 3,
+        "nameCategory": "Category name",
+        "descriptionCategory": "Category description"
+    }
+    ```
+### 4. Update Category by ID
+
+```http
+  PUT /category/{id}
+```
+
+| Parameter | Type     | Description                       |
+| :-------- | :------- | :-------------------------------- |
+| `id`      | `int` | **Required**. Id of item to fetch |
+- **Request:**
+  - **Content-Type:** `application/json`
+  - **Body:** (example with all possible fields)
+    ```json
+    {
+        "nameCategory": "Category name",
+        "descriptionCategory": "Category description"
+    }
+    ```
+
+### 5. Delete Category
+
+```http
+  DELETE /categories/{id}
+```
+
+| Parameter | Type     | Description                       |
+| :-------- | :------- | :-------------------------------- |
+| `id`      | `int` | **Required**. Id of item to fetch |
