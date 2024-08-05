@@ -65,6 +65,7 @@ func (tr *ProductsResourse) GetProductsByIDS(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "No IDs provided", http.StatusBadRequest)
 		return
 	}
+	log.Debug().Msgf("Requested IDs: %s", idsStr)
 
 	products, err := tr.S.GetProductsByIDSDB(idsStr)
 	if err != nil {

@@ -138,14 +138,25 @@ func (s *DBStorage) GetAllProductsDb(limit, offset int) ([]enteties.FullProductI
 	return products, nil
 }
 
-func (s *DBStorage) GetProductsByIDSDB(selectingIds string) ([]enteties.Product, error) {
+func (s *DBStorage) GetProductsByIDSDB(selectingIds string) ([]enteties.FullProductInfo, error) {
 	const op = "storage.GetProductsByIDS"
 
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	query := `SELECT * FROM products
-			  WHERE id IN (` + selectingIds + ")"
+	query := `SELECT
+					p.id AS product_id,
+					p.name AS product_name,
+					p.description AS product_description,
+					p.price AS product_price,
+					p.quantity AS product_quantity,
+					p.is_available AS product_is_available,
+					c.idCategory AS category_id,
+					c.nameCategory AS category_name,
+					c.descriptionCategory AS category_description
+			FROM products p
+			JOIN categories c ON p.category = c.idCategory
+			WHERE p.id IN (` + selectingIds + ");"
 
 	rows, err := s.DB.Query(query)
 	if err != nil {
@@ -154,10 +165,10 @@ func (s *DBStorage) GetProductsByIDSDB(selectingIds string) ([]enteties.Product,
 	}
 	defer rows.Close()
 
-	var products []enteties.Product
+	var products []enteties.FullProductInfo
 	for rows.Next() {
-		var p enteties.Product
-		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Quantity, &p.Category, &p.IsAvailable); err != nil {
+		var p enteties.FullProductInfo
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Quantity, &p.IsAvailable, &p.Category, &p.CategoryName, &p.CategoryDescription); err != nil {
 			log.Error().Err(err).Msgf("%s: unable to scan product", op)
 			return nil, err
 		}

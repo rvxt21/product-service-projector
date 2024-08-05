@@ -17,9 +17,8 @@ func (tr *ProductsResourse) RegisterRoutes(r *mux.Router) {
 	r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct))).Methods("PUT")
 	r.Handle("/products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability))).Methods("PATCH")
 	r.HandleFunc("/products", tr.CreateProduct).Methods("POST")
-	r.HandleFunc("/products/{id}", tr.GetProductByID).Methods("GET")
 	r.HandleFunc("/products", tr.GetAllProducts).Methods("GET")
-	r.HandleFunc("/products/by-ids", tr.GetProductsByIDS).Methods("GET")
+	r.HandleFunc("/products-by-ids", tr.GetProductsByIDS).Methods("GET")
 	r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.GetProductByID))).Methods("GET")
 
 	r.HandleFunc("/categories", tr.CreateCategory).Methods("POST")
