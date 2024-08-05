@@ -9,14 +9,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type ContextKey string
+type ContextKeyCategory string
 
-const IdKey ContextKey = "id"
+const IdKeyCategory ContextKeyCategory = "idCategory"
 
-func IdMiddleware(next http.Handler) http.Handler {
+func IdMiddlewareCategory(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		idStr, ok := vars["id"]
+		idStr, ok := vars["idCategory"]
 		if !ok {
 			log.Info().Msg("Missed ID")
 			w.WriteHeader(http.StatusBadRequest)

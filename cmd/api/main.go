@@ -1,12 +1,13 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
-	"products/resources"
-	"products/storage"
+	"os"
+
+	"products/internal/resources"
+	"products/internal/storage"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
@@ -15,23 +16,30 @@ import (
 func main() {
 	fmt.Println("Product Service Project!")
 
-	connStr := "postgres://TemporaryMainuser:TemporaryPasw@database:5432/products?sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
+	connStr := os.Getenv("POSTGRES_CONN_STR")
+	if connStr == "" {
+		log.Fatal("Environment variable POSTGRES_CONN_STR is required")
+	}
+
+	store, err := storage.New(connStr)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
+	defer store.DB.Close()
+
+	err = store.InitializeDB()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	r := mux.NewRouter()
-	store := storage.NewStorage()
 	productResource := &resources.ProductsResourse{S: store}
-
 	productResource.RegisterRoutes(r)
 
 	fmt.Println("Starting server at :8080")
 	errServ := http.ListenAndServe(":8080", r)
 	if errServ != nil {
-		fmt.Println("Error happened", err.Error())
+		fmt.Println("Error happened, %v", errServ.Error)
 		return
 	}
 }
