@@ -45,7 +45,7 @@ func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request
 
 	id, err := tr.S.CreateOneProductDb(product)
 	if err != nil {
-		log.Printf("Failed to create product in database: %v", err)
+		log.Error().Msgf("Failed to create product in database: %v", err)
 		http.Error(w, "Unable to create product", http.StatusInternalServerError)
 		return
 	}

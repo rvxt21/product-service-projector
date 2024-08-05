@@ -7,6 +7,7 @@ import (
 	"products/enteties"
 	"sync"
 
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 )
@@ -38,31 +39,30 @@ func New(connStr string) (*DBStorage, error) {
 func (s *DBStorage) InitializeDB() error {
 	createProductsTable := `
 	CREATE TABLE IF NOT EXISTS products (
-		id SERIAL PRIMARY KEY,
-		name VARCHAR(100),
-		description TEXT,
-		price INT,
-		quantity INT,
-		category VARCHAR(100),
-		is_available BOOLEAN
-	);`
+    	id SERIAL PRIMARY KEY,
+    	name VARCHAR(100),
+    	description TEXT,
+    	price INT,
+    	quantity INT,
+    	category INT,
+    	is_available BOOLEAN,
+    	FOREIGN KEY (category) REFERENCES categories(idCategory) ON DELETE SET NULL);`
 
 	createCategoriesTable := `
 	CREATE TABLE IF NOT EXISTS categories (
-		idCategory SERIAL PRIMARY KEY,
-		nameCategory VARCHAR(100) NOT NULL,
-		descriptionCategory TEXT NOT NULL
-	);`
+    idCategory SERIAL PRIMARY KEY,
+    nameCategory VARCHAR(100) NOT NULL,
+    descriptionCategory TEXT NOT NULL);`
 
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	if _, err := s.DB.Exec(createProductsTable); err != nil {
-		return fmt.Errorf("creating products table: %w", err)
-	}
-
 	if _, err := s.DB.Exec(createCategoriesTable); err != nil {
 		return fmt.Errorf("creating categories table: %w", err)
+	}
+
+	if _, err := s.DB.Exec(createProductsTable); err != nil {
+		return fmt.Errorf("creating products table: %w", err)
 	}
 
 	log.Info().Msg("Database initialized successfully")
@@ -76,27 +76,48 @@ func (s *DBStorage) CreateOneProductDb(p enteties.Product) (int, error) {
 
 	log.Info().Msgf("%s: creating product", op)
 	var id int
-	err := s.DB.QueryRow(
-		"INSERT INTO products (name, description, price, quantity, category, is_available) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-		p.Name, p.Description, p.Price, p.Quantity, p.Category, p.IsAvailable,
-	).Scan(&id)
+	query := `INSERT INTO products (name, description, price, quantity, category, is_available) 
+			  VALUES ($1, $2, $3, $4, $5, $6) 
+		      RETURNING id`
+	err := s.DB.QueryRow(query, p.Name, p.Description, p.Price, p.Quantity, p.Category, p.IsAvailable).Scan(&id)
 	if err != nil {
-		log.Error().Err(err).Msgf("%s: unable to create product", op)
-		return 0, err
+		if pqErr, ok := err.(*pq.Error); ok {
+			switch pqErr.Code {
+			case "23503": // Foreign key violation
+				log.Error().Err(err).Msgf("%s: violates foreign key constraint", op)
+				log.Info().Msgf(err.Error())
+				return 0, err
+			default:
+				log.Error().Err(err).Msgf("%s: unable to create product", op)
+				return 0, err
+			}
+		} else {
+			log.Error().Err(err).Msgf("%s: unable to create product", op)
+			return 0, err
+		}
 	}
-
 	return id, nil
 }
 
-func (s *DBStorage) GetAllProductsDb(limit, offset int) ([]enteties.Product, error) {
+func (s *DBStorage) GetAllProductsDb(limit, offset int) ([]enteties.FullProductInfo, error) {
 	const op = "storage.GetAllProducts"
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	query := `SELECT id, name, description, price, quantity, category, is_available
-			  FROM products
-			  LIMIT $1
-			  OFFSET $2`
+	query := `SELECT
+					p.id AS product_id,
+					p.name AS product_name,
+					p.description AS product_description,
+					p.price AS product_price,
+					p.quantity AS product_quantity,
+					p.is_available AS product_is_available,
+					c.idCategory AS category_id,
+					c.nameCategory AS category_name,
+					c.descriptionCategory AS category_description
+			FROM products p
+			JOIN categories c ON p.category = c.idCategory
+			LIMIT $1
+			OFFSET $2;`
 	rows, err := s.DB.Query(query, limit, offset)
 	if err != nil {
 		log.Error().Err(err).Msgf("%s: unable to get all products", op)
@@ -104,10 +125,10 @@ func (s *DBStorage) GetAllProductsDb(limit, offset int) ([]enteties.Product, err
 	}
 	defer rows.Close()
 
-	var products []enteties.Product
+	var products []enteties.FullProductInfo
 	for rows.Next() {
-		var p enteties.Product
-		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Quantity, &p.Category, &p.IsAvailable); err != nil {
+		var p enteties.FullProductInfo
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Quantity, &p.IsAvailable, &p.Category, &p.CategoryName, &p.CategoryDescription); err != nil {
 			log.Error().Err(err).Msgf("%s: unable to scan product", op)
 			return nil, err
 		}
@@ -153,10 +174,10 @@ func (s *DBStorage) GetProductByIDDb(id int) (enteties.Product, error) {
 	defer s.m.Unlock()
 
 	var p enteties.Product
-	err := s.DB.QueryRow(
-		"SELECT id, name, description, price, quantity, category, is_available FROM products WHERE id = $1",
-		id,
-	).Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Quantity, &p.Category, &p.IsAvailable)
+	query := `SELECT id, name, description, price, quantity, category, is_available 
+			  FROM products 
+			  WHERE id = $1`
+	err := s.DB.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Quantity, &p.Category, &p.IsAvailable)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Warn().Msgf("%s: product not found with id %d", op, id)
@@ -174,7 +195,10 @@ func (s *DBStorage) DeleteProductDb(id int) (bool, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	result, err := s.DB.Exec("DELETE FROM products WHERE id=$1", id)
+	query := `DELETE FROM products 
+			  WHERE id=$1`
+
+	result, err := s.DB.Exec(query, id)
 	if err != nil {
 		log.Error().Err(err).Msgf("%s: unable to delete product", op)
 		return false, err
@@ -194,7 +218,9 @@ func (s *DBStorage) UpdateProductBd(p enteties.Product) error {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	query := `UPDATE products SET name = $1, description = $2, price = $3, quantity = $4, category = $5, is_available = $6 WHERE id = $7`
+	query := `UPDATE products 
+			  SET name = $1, description = $2, price = $3, quantity = $4, category = $5, is_available = $6 
+			  WHERE id = $7`
 	_, err := s.DB.Exec(query, p.Name, p.Description, p.Price, p.Quantity, p.Category, p.IsAvailable, p.ID)
 	if err != nil {
 		log.Error().Err(err).Msgf("%s: unable to update product", op)
@@ -210,7 +236,9 @@ var (
 
 func (s *DBStorage) UpdateProductAvailabilityDB(id int, availability bool) error {
 	const op = "storage_db.UpdateProductAvailability"
-	query := `UPDATE products SET is_available = $1 WHERE id = $2;`
+	query := `UPDATE products 
+			  SET is_available = $1 
+			  WHERE id = $2;`
 	res, err := s.DB.Exec(query, availability, id)
 	if err != nil {
 		log.Error().Err(err).Msgf("%s: %s", op, err)
@@ -235,7 +263,9 @@ func (s *DBStorage) GetAllCategoriesDb() ([]enteties.Category, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	rows, err := s.DB.Query("SELECT idCategory, nameCategory, descriptionCategory FROM categories")
+	query := `SELECT * 
+	          FROM categories`
+	rows, err := s.DB.Query(query)
 	if err != nil {
 		log.Error().Err(err).Msgf("%s: unable to get all categories", op)
 		return nil, err
@@ -260,11 +290,11 @@ func (s *DBStorage) CreateCategory(c enteties.Category) (int, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
+	query := `INSERT INTO categories (nameCategory, descriptionCategory) 
+			  VALUES ($1, $2)
+			  RETURNING idCategory`
 	var id int
-	err := s.DB.QueryRow(
-		"INSERT INTO categories (nameCategory, descriptionCategory) VALUES ($1, $2) RETURNING idCategory",
-		c.NameCategory, c.DescriptionCategory,
-	).Scan(&id)
+	err := s.DB.QueryRow(query, c.NameCategory, c.DescriptionCategory).Scan(&id)
 	if err != nil {
 		log.Error().Err(err).Msgf("%s: unable to create category", op)
 		return 0, err
@@ -278,8 +308,10 @@ func (s *DBStorage) UpdateCategory(c enteties.Category) error {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	_, err := s.DB.Exec("UPDATE categories SET nameCategory=$1, descriptionCategory=$2 WHERE idCategory=$3",
-		c.NameCategory, c.DescriptionCategory, c.IdCategory)
+	query := `UPDATE categories 
+			  SET nameCategory=$1, descriptionCategory=$2 
+			  WHERE idCategory=$3`
+	_, err := s.DB.Exec(query, c.NameCategory, c.DescriptionCategory, c.IdCategory)
 	if err != nil {
 		log.Error().Err(err).Msgf("%s: unable to update category", op)
 		return err
@@ -293,8 +325,11 @@ func (s *DBStorage) GetCategoryByID(id int) (enteties.Category, bool, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
+	query := `SELECT idCategory, nameCategory, descriptionCategory 
+			  FROM categories 
+			  WHERE idCategory = $1`
 	var c enteties.Category
-	err := s.DB.QueryRow("SELECT idCategory, nameCategory, descriptionCategory FROM categories WHERE idCategory = $1", id).Scan(&c.IdCategory, &c.NameCategory, &c.DescriptionCategory)
+	err := s.DB.QueryRow(query, id).Scan(&c.IdCategory, &c.NameCategory, &c.DescriptionCategory)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Error().Err(err).Msgf("%s: unable to get category", op)
@@ -311,7 +346,8 @@ func (s *DBStorage) DeleteCategory(id int) (bool, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	result, err := s.DB.Exec("DELETE FROM categories WHERE idCategory=$1", id)
+	query := `DELETE FROM categories WHERE idCategory=$1`
+	result, err := s.DB.Exec(query, id)
 	if err != nil {
 		log.Error().Err(err).Msgf("%s: unable to delete category", op)
 		return false, err

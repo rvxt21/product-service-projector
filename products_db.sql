@@ -18,5 +18,5 @@ CREATE TABLE IF NOT EXISTS products (
     quantity INT,
     category INT,
     is_available BOOLEAN,
-    FOREIGN KEY (category) REFERENCES categories(idCategory) 
+    FOREIGN KEY (category) REFERENCES categories(idCategory) ON DELETE SET NULL
 );
