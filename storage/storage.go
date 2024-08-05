@@ -168,23 +168,33 @@ func (s *DBStorage) GetProductsByIDSDB(selectingIds string) ([]enteties.Product,
 
 }
 
-func (s *DBStorage) GetProductByIDDb(id int) (enteties.Product, error) {
+func (s *DBStorage) GetProductByIDDb(id int) (enteties.FullProductInfo, error) {
 	const op = "storage.GetProductByIDDb"
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	var p enteties.Product
-	query := `SELECT id, name, description, price, quantity, category, is_available 
-			  FROM products 
-			  WHERE id = $1`
-	err := s.DB.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Quantity, &p.Category, &p.IsAvailable)
+	var p enteties.FullProductInfo
+	query := `SELECT
+					p.id AS product_id,
+					p.name AS product_name,
+					p.description AS product_description,
+					p.price AS product_price,
+					p.quantity AS product_quantity,
+					p.is_available AS product_is_available,
+					c.idCategory AS category_id,
+					c.nameCategory AS category_name,
+					c.descriptionCategory AS category_description
+			FROM products p
+			JOIN categories c ON p.category = c.idCategory 
+			WHERE id = $1`
+	err := s.DB.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Quantity, &p.IsAvailable, &p.Category, &p.CategoryName, &p.CategoryDescription)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Warn().Msgf("%s: product not found with id %d", op, id)
-			return enteties.Product{}, nil
+			return enteties.FullProductInfo{}, nil
 		}
 		log.Error().Err(err).Msgf("%s: unable to get product by id", op)
-		return enteties.Product{}, err
+		return enteties.FullProductInfo{}, err
 	}
 
 	return p, nil

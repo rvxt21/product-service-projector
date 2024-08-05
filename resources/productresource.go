@@ -20,12 +20,12 @@ type ProductsResourse struct {
 
 func (tr *ProductsResourse) RegisterRoutes(r *mux.Router) {
 	r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.DeleteProduct))).Methods("DELETE")
-	r.HandleFunc("/product/{id}", tr.UpdateProduct).Methods("PUT")
+	r.Handle("/product/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct))).Methods("PUT")
 	r.Handle("/products/availability/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability))).Methods("PATCH")
 	r.HandleFunc("/products", tr.CreateProduct).Methods("POST")
 	r.HandleFunc("/products", tr.GetAllProducts).Methods("GET")
 	r.HandleFunc("/products/by-ids", tr.GetProductsByIDS).Methods("GET")
-	//r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.GetByID))).Methods("GET")
+	r.Handle("/products/{id}", middleware.IdMiddleware(http.HandlerFunc(tr.GetProductByID))).Methods("GET")
 
 	r.HandleFunc("/categories", tr.CreateCategory).Methods("POST")
 	r.HandleFunc("/categories", tr.GetAllCategories).Methods("GET")
@@ -137,16 +137,7 @@ func (tr *ProductsResourse) DeleteProduct(w http.ResponseWriter, r *http.Request
 }
 
 func (tr *ProductsResourse) UpdateProduct(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	idStr := vars["id"]
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id < 1 {
-		http.Error(w, "Invalid product ID", http.StatusBadRequest)
-		return
-	}
-
+	id := r.Context().Value(middleware.IdKey).(int)
 	var product enteties.Product
 	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
