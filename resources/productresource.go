@@ -55,7 +55,7 @@ func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request
 		log.Printf("Failed to encode response: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
-	w.WriteHeader(http.StatusCreated)
+
 }
 
 func (tr *ProductsResourse) GetAllProducts(w http.ResponseWriter, r *http.Request) {
@@ -213,7 +213,7 @@ func (tr *ProductsResourse) CreateCategory(w http.ResponseWriter, r *http.Reques
 		log.Error().Err(err).Msg("Failed to encode response")
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
-	w.WriteHeader(http.StatusCreated)
+
 }
 
 func (tr *ProductsResourse) GetAllCategories(w http.ResponseWriter, r *http.Request) {
