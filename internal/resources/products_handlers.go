@@ -8,6 +8,7 @@ import (
 	"products/internal/enteties"
 	"products/internal/middleware"
 	"products/internal/storage"
+	"products/pkg/utils"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -66,6 +67,14 @@ func (tr *ProductsResourse) GetProductsByIDS(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	log.Debug().Msgf("Requested IDs: %s", idsStr)
+
+	ids, err := utils.ProcessIfIdsInt(idsStr)
+	if err != nil {
+		http.Error(w, "Wrong ID format", http.StatusBadRequest)
+		return
+	}
+
+	idsStr = utils.ConvertIntSliceToString(ids)
 
 	products, err := tr.S.GetProductsByIDSDB(idsStr)
 	if err != nil {
