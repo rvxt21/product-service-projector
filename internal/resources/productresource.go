@@ -16,7 +16,7 @@ func (tr *ProductsResourse) RegisterRoutes(r *mux.Router) {
 	r.Use(middleware.MockAuthenticationMiddleware)
 
 	r.Handle("/products/{id}", middleware.AdminMiddleware(middleware.IdMiddleware(http.HandlerFunc(tr.DeleteProduct)))).Methods("DELETE")
-	r.Handle("/products/{id}", middleware.AdminMiddleware(http.HandlerFunc(tr.UpdateProduct))).Methods("PUT")
+	r.Handle("/products/{id}", middleware.AdminMiddleware(middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct)))).Methods("PUT")
 	r.Handle("/products/{id}", middleware.IdMiddleware(middleware.AdminMiddleware(http.HandlerFunc(tr.GetProductByID)))).Methods("GET")
 	r.Handle("/products/availability/{id}", middleware.AdminMiddleware(middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability)))).Methods("PATCH")
 	r.Handle("/products", middleware.AdminMiddleware(http.HandlerFunc(tr.CreateProduct))).Methods("POST")
