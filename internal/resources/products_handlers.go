@@ -128,6 +128,7 @@ func (tr *ProductsResourse) DeleteProduct(w http.ResponseWriter, r *http.Request
 func (tr *ProductsResourse) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	id := r.Context().Value(middleware.IdKey).(int)
 	var product enteties.Product
+
 	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
