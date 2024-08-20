@@ -21,6 +21,7 @@ func (tr *ProductsResourse) GetProducts(w http.ResponseWriter, r *http.Request) 
 		tr.GetByName(w, r)
 		return
 	}
+
 	tr.GetAllProducts(w, r)
 }
 
@@ -30,6 +31,17 @@ func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request
 		log.Printf("Failed to decode request body: %v", err)
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
+	}
+
+	err := product.IsValidPrice()
+	if err != nil {
+		if errors.Is(err, enteties.ErrNegativePriceValue) {
+			http.Error(w, "Invalid price, the price must be positive.", http.StatusBadRequest)
+			return
+		} else if errors.Is(err, enteties.ErrZeroPriceValue) {
+			http.Error(w, "Invalid price, the price must be >0.", http.StatusBadRequest)
+			return
+		}
 	}
 
 	id, err := tr.S.CreateOneProductDb(product)
@@ -187,7 +199,6 @@ func (tr *ProductsResourse) UpdateAvailability(w http.ResponseWriter, r *http.Re
 
 func (tr *ProductsResourse) GetByName(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
-	log.Debug().Msg("Calling search by name")
 	products, err := tr.S.SearchProductByName(name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
