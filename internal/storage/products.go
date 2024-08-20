@@ -12,10 +12,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var (
-	ErrCategoryNotFound = errors.New("category not found")
-)
-
 type DBStorage struct {
 	DB *sql.DB
 	m  sync.Mutex
@@ -279,106 +275,32 @@ func (s *DBStorage) UpdateProductAvailabilityDB(id int, availability bool) error
 	return nil
 }
 
-func (s *DBStorage) GetAllCategoriesDb() ([]enteties.Category, error) {
-	const op = "storage.GetAllCategories"
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	query := `SELECT * 
-	          FROM categories`
-	rows, err := s.DB.Query(query)
+func (s *DBStorage) SearchProductByName(name string) ([]enteties.FullProductInfo, error) {
+	var res []enteties.FullProductInfo
+	query := `SELECT 
+					p.id AS product_id,
+					p.name AS product_name,
+					p.description AS product_description,
+					p.price AS product_price,
+					p.quantity AS product_quantity,
+					p.is_available AS product_is_available,
+					c.idCategory AS category_id,
+					c.nameCategory AS category_name,
+					c.descriptionCategory AS category_description
+			FROM products p
+			JOIN categories c ON p.category = c.idCategory WHERE p.name ILIKE $1`
+	rows, err := s.DB.Query(query, "%"+name+"%")
 	if err != nil {
-		log.Error().Err(err).Msgf("%s: unable to get all categories", op)
 		return nil, err
 	}
 	defer rows.Close()
 
-	var categories []enteties.Category
 	for rows.Next() {
-		var c enteties.Category
-		if err := rows.Scan(&c.IdCategory, &c.NameCategory, &c.DescriptionCategory); err != nil {
-			log.Error().Err(err).Msgf("%s: unable to scan category", op)
+		var p enteties.FullProductInfo
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Quantity, &p.IsAvailable, &p.Category, &p.CategoryName, &p.CategoryDescription); err != nil {
 			return nil, err
 		}
-		categories = append(categories, c)
+		res = append(res, p)
 	}
-
-	return categories, nil
-}
-
-func (s *DBStorage) CreateCategory(c enteties.Category) (int, error) {
-	const op = "storage.CreateCategory"
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	query := `INSERT INTO categories (nameCategory, descriptionCategory) 
-			  VALUES ($1, $2)
-			  RETURNING idCategory`
-	var id int
-	err := s.DB.QueryRow(query, c.NameCategory, c.DescriptionCategory).Scan(&id)
-	if err != nil {
-		log.Error().Err(err).Msgf("%s: unable to create category", op)
-		return 0, err
-	}
-
-	return id, nil
-}
-
-func (s *DBStorage) UpdateCategory(c enteties.Category) error {
-	const op = "storage.UpdateCategory"
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	query := `UPDATE categories 
-			  SET nameCategory=$1, descriptionCategory=$2 
-			  WHERE idCategory=$3`
-	_, err := s.DB.Exec(query, c.NameCategory, c.DescriptionCategory, c.IdCategory)
-	if err != nil {
-		log.Error().Err(err).Msgf("%s: unable to update category", op)
-		return err
-	}
-
-	return nil
-}
-
-func (s *DBStorage) GetCategoryByID(id int) (enteties.Category, bool, error) {
-	const op = "storage.GetCategoryByID"
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	query := `SELECT idCategory, nameCategory, descriptionCategory 
-			  FROM categories 
-			  WHERE idCategory = $1`
-	var c enteties.Category
-	err := s.DB.QueryRow(query, id).Scan(&c.IdCategory, &c.NameCategory, &c.DescriptionCategory)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Error().Err(err).Msgf("%s: unable to get category", op)
-			return c, false, nil
-		}
-		return c, false, err
-	}
-
-	return c, true, nil
-}
-
-func (s *DBStorage) DeleteCategory(id int) (bool, error) {
-	const op = "storage.DeleteCategory"
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	query := `DELETE FROM categories WHERE idCategory=$1`
-	result, err := s.DB.Exec(query, id)
-	if err != nil {
-		log.Error().Err(err).Msgf("%s: unable to delete category", op)
-		return false, err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		log.Error().Err(err).Msgf("%s: unable to get rows affected", op)
-		return false, err
-	}
-
-	return rowsAffected > 0, nil
+	return res, nil
 }

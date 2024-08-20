@@ -15,6 +15,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+func (tr *ProductsResourse) GetProducts(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	if name != "" {
+		tr.GetByName(w, r)
+		return
+	}
+	tr.GetAllProducts(w, r)
+}
+
 func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var product enteties.Product
 	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
@@ -39,6 +48,8 @@ func (tr *ProductsResourse) CreateProduct(w http.ResponseWriter, r *http.Request
 }
 
 func (tr *ProductsResourse) GetAllProducts(w http.ResponseWriter, r *http.Request) {
+	log.Debug().Msg("Calling get all")
+
 	strLimit := r.URL.Query().Get("limit")
 	strOffset := r.URL.Query().Get("offset")
 
@@ -171,5 +182,28 @@ func (tr *ProductsResourse) UpdateAvailability(w http.ResponseWriter, r *http.Re
 			return
 		}
 		http.Error(w, "Unable to update availability", http.StatusInternalServerError)
+	}
+}
+
+func (tr *ProductsResourse) GetByName(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	log.Debug().Msg("Calling search by name")
+	products, err := tr.S.SearchProductByName(name)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "No products found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "No products found", http.StatusInternalServerError)
+	}
+	if products == nil {
+		http.Error(w, "No products found", http.StatusNotFound)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(products)
+	if err != nil {
+		log.Error().Msgf("Failed to encode response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
 }
