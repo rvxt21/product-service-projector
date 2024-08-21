@@ -304,3 +304,31 @@ func (s *DBStorage) SearchProductByName(name string) ([]enteties.FullProductInfo
 	}
 	return res, nil
 }
+
+func (s *DBStorage) CategorisedProducts(category string) ([]enteties.FullProductInfo, error) {
+	var res []enteties.FullProductInfo
+	query := `SELECT p.id AS product_id,
+					p.name AS product_name,
+					p.description AS product_description,
+					p.price AS product_price,
+					p.quantity AS product_quantity,
+					p.is_available AS product_is_available,
+					c.idCategory AS category_id,
+					c.nameCategory AS category_name,
+					c.descriptionCategory AS category_description
+			FROM products p
+			JOIN categories c ON p.category = c.idCategory WHERE c.nameCategory ILIKE $1`
+	rows, err := s.DB.Query(query, "%"+category+"%")
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var p enteties.FullProductInfo
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Quantity, &p.IsAvailable, &p.Category, &p.CategoryName, &p.CategoryDescription); err != nil {
+			return nil, err
+		}
+		res = append(res, p)
+	}
+	return res, nil
+}

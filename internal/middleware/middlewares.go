@@ -11,7 +11,10 @@ import (
 
 type ContextKey string
 
-const IdKey ContextKey = "id"
+const (
+	IdKey       ContextKey = "id"
+	CategoryKey ContextKey = "category"
+)
 
 func IdMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -36,18 +39,35 @@ func IdMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func CategoryMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		catStr, ok := vars["category"]
+		if !ok {
+			log.Info().Msg("Missed category")
+			http.Error(w, "Category not found", http.StatusBadRequest)
+			return
+
+		}
+
+		ctx := context.WithValue(r.Context(), CategoryKey, catStr)
+		next.ServeHTTP(w, r.WithContext(ctx))
+
+	})
+}
+
 const UserRoleKey = "userRole"
 const AdminRole = "admin"
 
 func AdminMiddleware(next http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        role, ok := r.Context().Value(UserRoleKey).(string)
-        if !ok || role != AdminRole {
-            http.Error(w, "Forbidden: You are not allowed to perform this action", http.StatusForbidden)
-            return
-        }
-        next.ServeHTTP(w, r)
-    })
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		role, ok := r.Context().Value(UserRoleKey).(string)
+		if !ok || role != AdminRole {
+			http.Error(w, "Forbidden: You are not allowed to perform this action", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func MockAuthenticationMiddleware(next http.Handler) http.Handler {
