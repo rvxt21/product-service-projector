@@ -17,12 +17,13 @@ func (tr *ProductsResourse) RegisterRoutes(r *mux.Router) {
 
 	r.Handle("/products/{id}", middleware.AdminMiddleware(middleware.IdMiddleware(http.HandlerFunc(tr.DeleteProduct)))).Methods("DELETE")
 	r.Handle("/products/{id}", middleware.AdminMiddleware(middleware.IdMiddleware(http.HandlerFunc(tr.UpdateProduct)))).Methods("PUT")
-	r.Handle("/products/{id}", middleware.IdMiddleware(middleware.AdminMiddleware(http.HandlerFunc(tr.GetProductByID)))).Methods("GET")
+	r.Handle("/products/{id:[0-9]+}", middleware.IdMiddleware(middleware.AdminMiddleware(http.HandlerFunc(tr.GetProductByID)))).Methods("GET")
 	r.Handle("/products/availability/{id}", middleware.AdminMiddleware(middleware.IdMiddleware(http.HandlerFunc(tr.UpdateAvailability)))).Methods("PATCH")
 	r.Handle("/products", middleware.AdminMiddleware(http.HandlerFunc(tr.CreateProduct))).Methods("POST")
 
 	r.HandleFunc("/products", tr.GetProducts).Methods("GET")
 	r.HandleFunc("/products-by-ids", tr.GetProductsByIDS).Methods("GET")
+	r.Handle("/products/{category:[a-zA-Z]+}", middleware.CategoryMiddleware(http.HandlerFunc(tr.GetCategorisedProducts))).Methods("GET")
 
 	r.Handle("/categories", middleware.AdminMiddleware(http.HandlerFunc(tr.CreateCategory))).Methods("POST")
 	r.HandleFunc("/categories", tr.GetAllCategories).Methods("GET")

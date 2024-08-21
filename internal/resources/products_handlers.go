@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"products/internal/enteties"
 	"products/internal/middleware"
@@ -206,9 +207,38 @@ func (tr *ProductsResourse) GetByName(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		http.Error(w, "No products found", http.StatusInternalServerError)
+		return
 	}
 	if products == nil {
 		http.Error(w, "No products found", http.StatusNotFound)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(products)
+	if err != nil {
+		log.Error().Msgf("Failed to encode response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+}
+
+func (tr *ProductsResourse) GetCategorisedProducts(w http.ResponseWriter, r *http.Request) {
+	category, ok := r.Context().Value(middleware.CategoryKey).(string)
+	if !ok {
+		http.Error(w, "Category not found in context", http.StatusInternalServerError)
+		return
+	}
+	fmt.Println(category)
+	products, err := tr.S.CategorisedProducts(category)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "No products found in this category", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "No products found in this category", http.StatusInternalServerError)
+		return
+	}
+	if products == nil {
+		http.Error(w, "No products found in this category", http.StatusNotFound)
 		return
 	}
 
