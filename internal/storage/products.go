@@ -9,19 +9,21 @@ import (
 
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 )
 
 type DBStorage struct {
-	DB *sql.DB
-	m  sync.Mutex
+	DB    *sql.DB
+	cache *redis.Client
+	m     sync.Mutex
 }
 
-func NewDBStorage(db *sql.DB) *DBStorage {
-	return &DBStorage{DB: db}
+func NewDBStorage(db *sql.DB, cache *redis.Client) *DBStorage {
+	return &DBStorage{DB: db, cache: cache}
 }
 
-func New(connStr string) (*DBStorage, error) {
+func New(connStr string, cache *redis.Client) (*DBStorage, error) {
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("openning database: %w", err)
@@ -29,7 +31,7 @@ func New(connStr string) (*DBStorage, error) {
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("pinging database: %w", err)
 	}
-	return &DBStorage{DB: db}, nil
+	return &DBStorage{DB: db, cache: cache}, nil
 }
 
 func (s *DBStorage) InitializeDB() error {
@@ -181,6 +183,14 @@ func (s *DBStorage) GetProductByIDDb(id int) (enteties.FullProductInfo, error) {
 	defer s.m.Unlock()
 
 	var p enteties.FullProductInfo
+	if prod, err := s.GetCachedProduct(id); err != nil {
+		if errors.Is(err, ErrNoProductInCache) {
+			log.Info().Msgf("%s: error checking cache", op)
+		}
+	} else {
+		log.Info().Msg("Product found in cache")
+		return *prod, nil
+	}
 	query := `SELECT
 					p.id AS product_id,
 					p.name AS product_name,
@@ -202,6 +212,9 @@ func (s *DBStorage) GetProductByIDDb(id int) (enteties.FullProductInfo, error) {
 		}
 		log.Error().Err(err).Msgf("%s: unable to get product by id", op)
 		return enteties.FullProductInfo{}, err
+	}
+	if err := s.CacheProduct(p); err != nil {
+		log.Error().Err(err).Msgf("%s: unable to cache product", op)
 	}
 
 	return p, nil
