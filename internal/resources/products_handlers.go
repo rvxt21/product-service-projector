@@ -129,6 +129,12 @@ func (tr *ProductsResourse) GetProductByID(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	ok := utils.IsEmptyFullProduct(product)
+	if ok {
+		http.Error(w, "Product not found", http.StatusNotFound)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(product)
 }

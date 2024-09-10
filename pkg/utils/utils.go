@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"products/internal/enteties"
 	"strconv"
 	"strings"
 )
@@ -28,4 +29,8 @@ func ConvertIntSliceToString(intSlice []int) string {
 	}
 	result := strings.Join(valuesText, ",")
 	return result
+}
+
+func IsEmptyFullProduct(structToCheck enteties.FullProductInfo) bool {
+	return structToCheck == enteties.FullProductInfo{}
 }
